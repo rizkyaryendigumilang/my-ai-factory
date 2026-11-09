@@ -68,12 +68,22 @@ module.exports = {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0.4' },
         },
+        'modal-in': {
+          from: { opacity: '0', transform: 'scale(0.96) translateY(4px)' },
+          to: { opacity: '1', transform: 'scale(1) translateY(0)' },
+        },
+        'scrim-in': {
+          from: { opacity: '0' },
+          to: { opacity: '1' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
         'pixel-bounce': 'pixel-bounce 2s ease-in-out infinite',
         'typing': 'typing 1.2s ease-in-out infinite',
+        'modal-in': 'modal-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        'scrim-in': 'scrim-in 0.15s ease-out forwards',
       },
     },
   },

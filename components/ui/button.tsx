@@ -3,7 +3,7 @@
 import * as React from 'react';
 
 const BASE =
-  'inline-flex items-center justify-center whitespace-nowrap rounded-sm text-sm font-medium transition-[transform,background-color,border-color,color] duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.98] select-none disabled:pointer-events-none disabled:opacity-50';
+  'inline-flex items-center justify-center whitespace-nowrap rounded-sm text-sm font-medium transition-[transform,background-color,border-color,color] duration-100 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.97] select-none disabled:pointer-events-none disabled:opacity-50';
 
 const VARIANTS = {
   default: 'bg-primary text-primary-foreground hover:bg-primary/90',

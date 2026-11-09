@@ -162,8 +162,14 @@ export default function SoftwareHouseSchemeModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-3">
-      <div className="relative flex max-h-[92vh] w-full max-w-5xl flex-col rounded-sm border border-border bg-card shadow-lg">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 animate-scrim-in"
+      onClick={onClose}
+    >
+      <div
+        className="relative flex max-h-[92vh] w-full max-w-5xl flex-col rounded-lg border border-white/10 bg-card/95 shadow-2xl backdrop-blur-xl animate-modal-in"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Modal Header */}
         <div className="flex shrink-0 items-center justify-between border-b border-border px-5 py-3.5">
           <div className="flex items-center gap-2.5">

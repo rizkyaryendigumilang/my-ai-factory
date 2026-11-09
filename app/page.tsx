@@ -107,7 +107,7 @@ export default function LandingPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="border-b border-border bg-card/80">
+      <header className="sticky top-0 z-40 border-b border-white/[0.08] bg-background/80 backdrop-blur-md backdrop-saturate-150 supports-[backdrop-filter]:bg-background/60">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
           <div className="flex items-center gap-2.5">
             <span className="flex h-7 w-7 items-center justify-center rounded-sm bg-primary text-xs font-bold text-primary-foreground">AF</span>
@@ -117,7 +117,7 @@ export default function LandingPage() {
           <div className="flex items-center gap-2">
             <Link
               href="/office"
-              className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground transition-[transform,background-color,border-color,color] duration-150 ease-out hover:border-primary active:scale-[0.98]"
+              className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground transition-[transform,background-color,border-color,color] duration-100 ease-out hover:border-primary active:scale-[0.97]"
               title="Buka Software House Virtual Office Layar Penuh"
             >
               <Building2 className="h-3.5 w-3.5 text-primary" />
@@ -125,7 +125,7 @@ export default function LandingPage() {
             </Link>
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-foreground transition-[transform,background-color,border-color,color] duration-150 ease-out hover:border-primary active:scale-[0.98]"
+              className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-foreground transition-[transform,background-color,border-color,color] duration-100 ease-out hover:border-primary active:scale-[0.97]"
             >
               <FolderGit2 className="h-3.5 w-3.5 text-primary" /> Buka Workspace
             </Link>

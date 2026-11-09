@@ -101,7 +101,7 @@ function SoftwareHouseOffice() {
   return (
     <div className="relative flex h-screen w-screen flex-col overflow-hidden bg-[#070b13] text-foreground">
       {/* Top Floating Control Bar */}
-      <header className="flex h-11 shrink-0 items-center justify-between border-b border-border bg-card px-3 z-20">
+      <header className="flex h-11 shrink-0 items-center justify-between border-b border-white/[0.08] bg-[#070b13]/85 backdrop-blur-md backdrop-saturate-150 supports-[backdrop-filter]:bg-[#070b13]/70 px-3 z-20">
         <div className="flex items-center gap-2.5">
           <Link
             href={id ? `/dashboard?project=${id}` : '/dashboard'}
