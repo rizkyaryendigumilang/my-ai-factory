@@ -161,7 +161,7 @@ function Workspace() {
           <button
             type="button"
             onClick={() => setShowDivisionModal(true)}
-            className="hidden items-center gap-1.5 rounded-sm border border-border bg-background px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-primary hover:text-foreground md:inline-flex active:scale-[0.98]"
+            className="hidden items-center gap-1.5 rounded-sm border border-border bg-background px-2.5 py-1 text-xs text-muted-foreground transition-[transform,background-color,border-color,color] duration-100 ease-out hover:border-primary hover:text-foreground md:inline-flex active:scale-[0.97]"
             title="Pilih & Konfigurasi Agen VPS untuk masing-masing Divisi Kantor"
           >
             <SlidersHorizontal className="h-3.5 w-3.5 text-primary" />
@@ -333,7 +333,7 @@ function Workspace() {
                           <button
                             type="button"
                             onClick={() => setShowDivisionModal(true)}
-                            className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:border-primary active:scale-[0.98]"
+                            className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground transition-[transform,background-color,border-color,color] duration-100 ease-out hover:border-primary active:scale-[0.97]"
                             title="Pilih & Konfigurasi Agen VPS untuk masing-masing Divisi Kantor"
                           >
                             <SlidersHorizontal className="h-3 w-3 text-primary" />
@@ -341,7 +341,7 @@ function Workspace() {
                           </button>
                           <Link
                             href={`/office?project=${state.project.id}`}
-                            className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:border-primary active:scale-[0.98]"
+                            className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground transition-[transform,background-color,border-color,color] duration-100 ease-out hover:border-primary active:scale-[0.97]"
                             title="Buka Virtual Office Layar Penuh"
                           >
                             <span>Layar Penuh</span>
@@ -350,7 +350,7 @@ function Workspace() {
                             href={`/virtual-office/index.html?project=${state.project.id}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 rounded-sm border border-border bg-background px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-primary hover:text-foreground active:scale-[0.98]"
+                            className="inline-flex items-center gap-1 rounded-sm border border-border bg-background px-2.5 py-1 text-xs text-muted-foreground transition-[transform,background-color,border-color,color] duration-100 ease-out hover:border-primary hover:text-foreground active:scale-[0.97]"
                             title="Buka Virtual Office di Tab Baru (Layar Penuh Mandiri)"
                           >
                             <span>Buka Tab Baru</span>

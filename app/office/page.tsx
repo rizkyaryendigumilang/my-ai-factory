@@ -106,7 +106,7 @@ function SoftwareHouseOffice() {
           <Link
             href={id ? `/dashboard?project=${id}` : '/dashboard'}
             aria-label="Kembali ke workspace dashboard"
-            className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-background px-2 py-1 text-xs font-medium text-muted-foreground transition-[transform,background-color,border-color,color] duration-150 ease-out hover:border-primary hover:text-foreground active:scale-[0.98]"
+            className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-background px-2 py-1 text-xs font-medium text-muted-foreground transition-[transform,background-color,border-color,color] duration-100 ease-out hover:border-primary hover:text-foreground active:scale-[0.97]"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Dashboard</span>
@@ -152,7 +152,7 @@ function SoftwareHouseOffice() {
           <button
             type="button"
             onClick={() => setShowSchemeModal(true)}
-            className="inline-flex h-7 items-center gap-1.5 rounded-sm border border-border bg-card px-2.5 text-xs font-medium text-foreground transition-[transform,background-color,border-color,color] duration-150 ease-out hover:border-primary active:scale-[0.98]"
+            className="inline-flex h-7 items-center gap-1.5 rounded-sm border border-border bg-card px-2.5 text-xs font-medium text-foreground transition-[transform,background-color,border-color,color] duration-100 ease-out hover:border-primary active:scale-[0.97]"
             title="Lihat Skema Alur Kerja & Arsitektur Kantor Software House AI"
           >
             <Workflow className="h-3.5 w-3.5 text-primary" />
@@ -162,7 +162,7 @@ function SoftwareHouseOffice() {
           <button
             type="button"
             onClick={() => setShowDivisionModal(true)}
-            className="inline-flex h-7 items-center gap-1.5 rounded-sm border border-border bg-card px-2.5 text-xs font-medium text-foreground transition-[transform,background-color,border-color,color] duration-150 ease-out hover:border-primary active:scale-[0.98]"
+            className="inline-flex h-7 items-center gap-1.5 rounded-sm border border-border bg-card px-2.5 text-xs font-medium text-foreground transition-[transform,background-color,border-color,color] duration-100 ease-out hover:border-primary active:scale-[0.97]"
             title="Pilih & Konfigurasi Agen VPS untuk masing-masing Divisi Kantor"
           >
             <SlidersHorizontal className="h-3.5 w-3.5 text-primary" />
@@ -172,7 +172,7 @@ function SoftwareHouseOffice() {
           <button
             type="button"
             onClick={toggleFullscreen}
-            className="inline-flex h-7 items-center gap-1 rounded-sm border border-border bg-card px-2.5 text-xs font-medium text-foreground transition-[transform,background-color,border-color,color] duration-150 ease-out hover:border-primary active:scale-[0.98]"
+            className="inline-flex h-7 items-center gap-1 rounded-sm border border-border bg-card px-2.5 text-xs font-medium text-foreground transition-[transform,background-color,border-color,color] duration-100 ease-out hover:border-primary active:scale-[0.97]"
             title={isFullscreen ? 'Keluar dari layar penuh' : 'Masuk mode layar penuh (F11)'}
           >
             {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
@@ -183,7 +183,7 @@ function SoftwareHouseOffice() {
             href={`/virtual-office/index.html?project=${id ?? ''}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex h-7 items-center gap-1 rounded-sm border border-border bg-background px-2.5 text-xs font-medium text-muted-foreground transition-[transform,background-color,border-color,color] duration-150 ease-out hover:border-primary hover:text-foreground active:scale-[0.98]"
+            className="inline-flex h-7 items-center gap-1 rounded-sm border border-border bg-background px-2.5 text-xs font-medium text-muted-foreground transition-[transform,background-color,border-color,color] duration-100 ease-out hover:border-primary hover:text-foreground active:scale-[0.97]"
             title="Buka Virtual Office di Tab Baru (Layar Penuh Mandiri)"
           >
             <ExternalLink className="h-3.5 w-3.5" />
@@ -194,7 +194,7 @@ function SoftwareHouseOffice() {
             href="https://43.156.236.102:8444/?profile=default"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex h-7 items-center gap-1.5 rounded-sm border border-border bg-card px-2.5 text-xs font-medium text-foreground transition-[transform,background-color,border-color,color] duration-150 ease-out hover:border-primary active:scale-[0.98]"
+            className="inline-flex h-7 items-center gap-1.5 rounded-sm border border-border bg-card px-2.5 text-xs font-medium text-foreground transition-[transform,background-color,border-color,color] duration-100 ease-out hover:border-primary active:scale-[0.97]"
             title="Buka Hermes Agent VPS Dashboard Langsung (Port 8444)"
           >
             <span>Hermes VPS (8444)</span>
@@ -204,7 +204,7 @@ function SoftwareHouseOffice() {
           <button
             type="button"
             onClick={() => setShowDrawer((v) => !v)}
-            className={`inline-flex h-7 items-center gap-1.5 rounded-sm border px-2.5 text-xs font-medium transition-[transform,background-color,border-color,color] duration-150 ease-out active:scale-[0.98] ${
+            className={`inline-flex h-7 items-center gap-1.5 rounded-sm border px-2.5 text-xs font-medium transition-[transform,background-color,border-color,color] duration-100 ease-out active:scale-[0.97] ${
               showDrawer
                 ? 'border-primary bg-primary text-primary-foreground'
                 : 'border-border bg-background text-foreground hover:border-primary'
@@ -217,7 +217,7 @@ function SoftwareHouseOffice() {
 
           <Link
             href={id ? `/dashboard?project=${id}` : '/dashboard'}
-            className="hidden h-7 items-center gap-1 rounded-sm border border-border bg-card px-2.5 text-xs font-medium text-foreground transition-[transform,background-color,border-color,color] duration-150 ease-out hover:border-primary active:scale-[0.98] xl:inline-flex"
+            className="hidden h-7 items-center gap-1 rounded-sm border border-border bg-card px-2.5 text-xs font-medium text-foreground transition-[transform,background-color,border-color,color] duration-100 ease-out hover:border-primary active:scale-[0.97] xl:inline-flex"
             title="Buka Workspace Proyek"
           >
             <FolderGit2 className="h-3.5 w-3.5 text-primary" />

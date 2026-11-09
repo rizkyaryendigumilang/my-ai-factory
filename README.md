@@ -86,3 +86,7 @@ Add the following GitHub Repository Secrets:
 - `VPS_SSH_PORT`: SSH Port (default: 22 / 2222)
 
 Push to `main` to trigger the automated CI/CD pipeline.
+
+### Production Ports & Proxy Architecture
+- **Internal PM2 Node Process:** Port `3005` (ecosystem.config.cjs)
+- **Public Reverse Proxy:** Caddy HTTPS on Port `8450` (`https://<VPS_HOST>:8450`) with auto-TLS to prevent port collisions with other VPS services.

@@ -524,7 +524,7 @@ export default function SoftwareHouseSchemeModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-sm bg-primary px-3.5 py-1.5 font-medium text-primary-foreground transition-[transform,background-color,border-color,color] duration-150 ease-out hover:bg-primary/90 active:scale-[0.98]"
+            className="rounded-sm bg-primary px-3.5 py-1.5 font-medium text-primary-foreground transition-[transform,background-color,border-color,color] duration-100 ease-out hover:bg-primary/90 active:scale-[0.97]"
           >
             Tutup Skema
           </button>

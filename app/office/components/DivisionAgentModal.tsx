@@ -291,21 +291,21 @@ export default function DivisionAgentModal({
             <button
               type="button"
               onClick={applyPresetDefault}
-              className="rounded-sm border border-border bg-card px-2 py-1 text-[11px] font-medium text-foreground transition-[transform,background-color,border-color,color] duration-150 ease-out hover:border-primary active:scale-[0.98]"
+              className="rounded-sm border border-border bg-card px-2 py-1 text-[11px] font-medium text-foreground transition-[transform,background-color,border-color,color] duration-100 ease-out hover:border-primary active:scale-[0.97]"
             >
               Rekomendasi Software House
             </button>
             <button
               type="button"
               onClick={applyPresetAllHermes}
-              className="rounded-sm border border-border bg-card px-2 py-1 text-[11px] font-medium text-foreground transition-[transform,background-color,border-color,color] duration-150 ease-out hover:border-primary active:scale-[0.98]"
+              className="rounded-sm border border-border bg-card px-2 py-1 text-[11px] font-medium text-foreground transition-[transform,background-color,border-color,color] duration-100 ease-out hover:border-primary active:scale-[0.97]"
             >
               Semua Hermes VPS (8444)
             </button>
             <button
               type="button"
               onClick={applyPresetAll9Router}
-              className="rounded-sm border border-border bg-card px-2 py-1 text-[11px] font-medium text-foreground transition-[transform,background-color,border-color,color] duration-150 ease-out hover:border-primary active:scale-[0.98]"
+              className="rounded-sm border border-border bg-card px-2 py-1 text-[11px] font-medium text-foreground transition-[transform,background-color,border-color,color] duration-100 ease-out hover:border-primary active:scale-[0.97]"
             >
               Semua 9Router Gateway (8443)
             </button>
@@ -316,7 +316,7 @@ export default function DivisionAgentModal({
               type="button"
               onClick={testVPSConnection}
               disabled={testingPing}
-              className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-foreground transition-[transform,background-color,border-color,color] duration-150 ease-out hover:border-primary disabled:opacity-60 active:scale-[0.98]"
+              className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-foreground transition-[transform,background-color,border-color,color] duration-100 ease-out hover:border-primary disabled:opacity-60 active:scale-[0.97]"
             >
               <Wifi className="h-3 w-3 text-primary" />
               <span>{testingPing ? 'Memeriksa VPS…' : 'Tes Koneksi VPS'}</span>
@@ -514,7 +514,7 @@ export default function DivisionAgentModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-sm border border-border bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground transition-[transform,background-color,border-color,color] duration-150 ease-out hover:border-primary hover:text-foreground active:scale-[0.98]"
+              className="rounded-sm border border-border bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground transition-[transform,background-color,border-color,color] duration-100 ease-out hover:border-primary hover:text-foreground active:scale-[0.97]"
             >
               Tutup
             </button>
@@ -522,7 +522,7 @@ export default function DivisionAgentModal({
               type="button"
               onClick={handleSave}
               disabled={saving}
-              className="inline-flex items-center gap-1.5 rounded-sm bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground transition-[transform,background-color,border-color,color] duration-150 ease-out hover:bg-primary/90 disabled:opacity-60 active:scale-[0.98]"
+              className="inline-flex items-center gap-1.5 rounded-sm bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground transition-[transform,background-color,border-color,color] duration-100 ease-out hover:bg-primary/90 disabled:opacity-60 active:scale-[0.97]"
             >
               <Check className="h-3.5 w-3.5" />
               <span>{saving ? 'Menyimpan…' : 'Simpan & Terapkan ke Kantor'}</span>

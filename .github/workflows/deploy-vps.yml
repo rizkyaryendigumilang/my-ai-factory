@@ -137,22 +137,20 @@ jobs:
           scp -o BatchMode=yes -o ConnectTimeout=30 -o StrictHostKeyChecking=yes -i "$HOME/.ssh/deploy_key" -P "$VPS_PORT" "./$ARCHIVE_NAME" "$VPS_USER@$VPS_HOST:~/$ARCHIVE_NAME"
 
           echo "Applying release on VPS with atomic staging and zero-downtime PM2 reload..."
-          ssh -o BatchMode=yes -o ConnectTimeout=30 -o ServerAliveInterval=10 -o ServerAliveCountMax=3 -o StrictHostKeyChecking=yes -i "$HOME/.ssh/deploy_key" -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" "bash -s -- '/srv/www/my-ai-factory' 'my-ai-factory' '${RELEASE_SHA}' '$ARCHIVE_NAME'" <<'REMOTE'
+          ssh -o BatchMode=yes -o ConnectTimeout=30 -o ServerAliveInterval=10 -o ServerAliveCountMax=3 -o StrictHostKeyChecking=yes -i "$HOME/.ssh/deploy_key" -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" "bash -s -- '/srv/www/my-ai-factory' 'my-ai-factory' '${RELEASE_SHA}' '$ARCHIVE_NAME' '${VPS_HOST}'" <<'REMOTE'
           set -Eeuo pipefail
           live="$1"
           slug="$2"
           release="$3"
           archive="$HOME/$4"
+          host="$5"
 
           export PATH="/usr/bin:/usr/local/bin:$HOME/.nvm/versions/node/$(ls $HOME/.nvm/versions/node 2>/dev/null | tail -n 1)/bin:$PATH"
 
-          # 1. Unban developer IP if fail2ban banned it
-          sudo fail2ban-client set sshd unbanip 202.162.208.26 2>/dev/null || true
-
-          # 2. Configure Caddy reverse proxy on port 8450 if not already configured
-          if ! sudo grep -q ':8450' /etc/caddy/Caddyfile; then
+          # 1. Configure Caddy reverse proxy on port 8450 if not already configured
+          if ! sudo grep -q ':8450' /etc/caddy/Caddyfile 2>/dev/null; then
             echo '--> Adding port 8450 reverse proxy to Caddyfile...'
-            printf '\nhttps://43.156.236.102:8450 {\n    tls {\n        issuer acme {\n            profile shortlived\n        }\n    }\n    encode zstd gzip\n    reverse_proxy 127.0.0.1:3005\n}\n' | sudo tee -a /etc/caddy/Caddyfile >/dev/null
+            printf '\nhttps://%s:8450 {\n    tls {\n        issuer acme {\n            profile shortlived\n        }\n    }\n    encode zstd gzip\n    reverse_proxy 127.0.0.1:3005\n}\n' "$host" | sudo tee -a /etc/caddy/Caddyfile >/dev/null
             sudo caddy validate --config /etc/caddy/Caddyfile
             sudo systemctl reload caddy
             echo '--> Caddy reloaded successfully on port 8450.'

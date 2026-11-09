@@ -157,7 +157,7 @@ export default function LandingPage() {
                           key={preset.label}
                           type="button"
                           onClick={() => { setPrompt(preset.prompt); setPersona(preset.persona); }}
-                          className="rounded-sm border border-border bg-card px-2 py-0.5 text-xs text-muted-foreground transition-[transform,background-color,border-color,color] duration-150 ease-out hover:border-primary hover:text-foreground active:scale-[0.98]"
+                          className="rounded-sm border border-border bg-card px-2 py-0.5 text-xs text-muted-foreground transition-[transform,background-color,border-color,color] duration-100 ease-out hover:border-primary hover:text-foreground active:scale-[0.97]"
                         >
                           + {preset.label}
                         </button>
@@ -187,7 +187,7 @@ export default function LandingPage() {
                         role="radio"
                         aria-checked={persona === k}
                         onClick={() => setPersona(k)}
-                        className={`rounded-sm border p-2.5 text-left text-sm transition-[transform,background-color,border-color,color] duration-150 ease-out active:scale-[0.98] select-none ${
+                        className={`rounded-sm border p-2.5 text-left text-sm transition-[transform,background-color,border-color,color] duration-100 ease-out active:scale-[0.97] select-none ${
                           persona === k ? 'border-primary bg-primary/10 text-foreground' : 'border-border bg-card text-muted-foreground hover:text-foreground'
                         }`}
                       >
@@ -204,7 +204,7 @@ export default function LandingPage() {
                   <button
                     type="submit"
                     disabled={loading || prompt.trim().length < 3}
-                    className="inline-flex h-10 items-center gap-2 rounded-sm bg-primary px-5 text-sm font-semibold text-primary-foreground transition-[transform,background-color,border-color,color] duration-150 ease-out hover:bg-primary/90 active:scale-[0.98] select-none disabled:opacity-50"
+                    className="inline-flex h-10 items-center gap-2 rounded-sm bg-primary px-5 text-sm font-semibold text-primary-foreground transition-[transform,background-color,border-color,color] duration-100 ease-out hover:bg-primary/90 active:scale-[0.97] select-none disabled:opacity-50"
                   >
                     {loading ? 'Menyiapkan ruang kerja…' : 'Rakit Proyek Sekarang'}
                     <ArrowRight className="h-4 w-4" />
@@ -228,7 +228,7 @@ export default function LandingPage() {
                       key={s.role}
                       type="button"
                       onClick={() => setActiveStation(idx)}
-                      className={`min-w-[140px] flex-1 rounded-sm border px-2.5 py-1.5 text-left text-xs transition-[transform,background-color,border-color,color] duration-150 ease-out active:scale-[0.98] select-none ${
+                      className={`min-w-[140px] flex-1 rounded-sm border px-2.5 py-1.5 text-left text-xs transition-[transform,background-color,border-color,color] duration-100 ease-out active:scale-[0.97] select-none ${
                         activeStation === idx ? 'border-primary bg-primary/10 font-medium text-foreground' : 'border-border bg-background text-muted-foreground hover:text-foreground'
                       }`}
                     >
