@@ -3,9 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Building2, ExternalLink, FolderGit2, Layers, Terminal } from 'lucide-react';
-import VirtualOffice from './dashboard/components/VirtualOffice';
-import { ROLE_ORDER, type OfficeState } from '@/lib/activity';
+import { ArrowRight, Building2, FolderGit2, Layers, Terminal } from 'lucide-react';
 import { api } from '@/lib/use-project';
 import { GEM_PERSONAS, GEM_PERSONA_IDS, type AgentRole, type GemPersona } from '@/types';
 
@@ -90,11 +88,6 @@ export default function LandingPage() {
   const [error, setError] = useState('');
 
   const currentStation = STATIONS[activeStation];
-  const prevRole = ROLE_ORDER[Math.max(0, activeStation - 1)];
-  const stageActivity: Partial<Record<AgentRole, OfficeState>> = {
-    [currentStation.role]: 'typing',
-    ...(activeStation > 0 ? { [prevRole]: 'discussing' } : {}),
-  };
 
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -222,35 +215,6 @@ export default function LandingPage() {
             </div>
 
             <div className="lg:col-span-6 space-y-3">
-              <div className="flex items-center justify-between rounded-sm border border-border bg-card/70 px-3 py-2 text-xs">
-                <div className="flex items-center gap-2">
-                  <Building2 className="h-4 w-4 text-primary" />
-                  <div>
-                    <span className="font-semibold text-foreground">Kantor Software House AI</span>
-                    <span className="hidden text-[11px] text-muted-foreground md:inline"> • Virtual Office 2D</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Link
-                    href="/office"
-                    className="inline-flex items-center gap-1 rounded-sm border border-border bg-card px-2 py-0.5 text-[11px] font-medium text-foreground transition-[transform,background-color,border-color,color] duration-150 ease-out hover:border-primary active:scale-[0.98]"
-                    title="Buka Virtual Office Layar Penuh"
-                  >
-                    Buka Layar Penuh
-                  </Link>
-                  <a
-                    href="/virtual-office/index.html"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 rounded-sm border border-border bg-background px-2 py-0.5 text-[11px] text-muted-foreground transition-[transform,background-color,border-color,color] duration-150 ease-out hover:border-primary hover:text-foreground active:scale-[0.98]"
-                    title="Buka Virtual Office di Tab Baru Mandiri"
-                  >
-                    <span>Tab Baru</span>
-                    <ExternalLink className="h-3 w-3 opacity-60" />
-                  </a>
-                </div>
-              </div>
-              <VirtualOffice activity={stageActivity} />
               <div className="rounded-sm border border-border bg-card p-3">
                 <div className="mb-2 flex items-center justify-between text-xs">
                   <span className="flex items-center gap-1.5 font-semibold text-foreground">
