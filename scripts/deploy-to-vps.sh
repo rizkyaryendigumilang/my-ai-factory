@@ -59,6 +59,7 @@ fi
 echo -e "\n[6/6] Menjalankan reload zero-downtime di VPS..."
 REMOTE_CMD="
 set -e
+export PATH=\"/usr/bin:/usr/local/bin:\$HOME/.nvm/versions/node/\$(ls \$HOME/.nvm/versions/node 2>/dev/null | tail -n 1)/bin:\$PATH\"
 sudo mkdir -p $REMOTE_DIR
 sudo chown -R $VPS_USER:$VPS_USER $REMOTE_DIR
 
@@ -72,7 +73,7 @@ cd $REMOTE_DIR
 npm ci --omit=dev
 
 if command -v pm2 >/dev/null 2>&1; then
-    pm2 reload $APP_NAME 2>/dev/null || pm2 start ecosystem.config.cjs
+    pm2 reload $APP_NAME --update-env 2>/dev/null || pm2 start ecosystem.config.cjs
     pm2 save
 fi
 

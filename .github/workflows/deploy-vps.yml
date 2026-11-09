@@ -144,6 +144,8 @@ jobs:
           release="$3"
           archive="$HOME/$4"
 
+          export PATH="/usr/bin:/usr/local/bin:$HOME/.nvm/versions/node/$(ls $HOME/.nvm/versions/node 2>/dev/null | tail -n 1)/bin:$PATH"
+
           # 1. Unban developer IP if fail2ban banned it
           sudo fail2ban-client set sshd unbanip 202.162.208.26 2>/dev/null || true
 
@@ -204,7 +206,7 @@ jobs:
           # Reload or start PM2 application process on port 3005
           if command -v pm2 >/dev/null 2>&1; then
             echo "Reloading process with PM2 on port 3005..."
-            pm2 reload "$slug" 2>/dev/null || pm2 start ecosystem.config.cjs
+            pm2 reload "$slug" --update-env 2>/dev/null || pm2 start ecosystem.config.cjs
             pm2 save || true
           fi
 

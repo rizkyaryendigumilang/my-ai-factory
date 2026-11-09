@@ -128,6 +128,7 @@ Write-Host "`n[6/6] Menjalankan reload zero-downtime di VPS..." -ForegroundColor
 
 $remoteScript = @"
 set -e
+export PATH="/usr/bin:/usr/local/bin:`$HOME/.nvm/versions/node/`$(ls `$HOME/.nvm/versions/node 2>/dev/null | tail -n 1)/bin:`$PATH"
 echo '--> Menyiapkan direktori aplikasi di $RemoteDir...'
 sudo mkdir -p $RemoteDir
 sudo chown -R $VpsUser:$VpsUser $RemoteDir
@@ -149,11 +150,11 @@ npm ci --omit=dev
 
 echo '--> Me-reload proses PM2 pada port $AppPort...'
 if command -v pm2 >/dev/null 2>&1; then
-    pm2 reload $AppName 2>/dev/null || pm2 start ecosystem.config.cjs
+    pm2 reload $AppName --update-env 2>/dev/null || pm2 start ecosystem.config.cjs
     pm2 save
 else
     echo 'Warning: PM2 tidak terpasang di VPS, menjalankan npx pm2...'
-    npx pm2 reload $AppName 2>/dev/null || npx pm2 start ecosystem.config.cjs
+    npx pm2 reload $AppName --update-env 2>/dev/null || npx pm2 start ecosystem.config.cjs
 fi
 
 echo '--> Verifikasi healthcheck lokal server...'
