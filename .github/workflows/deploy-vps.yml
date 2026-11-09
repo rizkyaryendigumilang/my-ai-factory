@@ -150,20 +150,7 @@ jobs:
           # 2. Configure Caddy reverse proxy on port 8450 if not already configured
           if ! sudo grep -q ':8450' /etc/caddy/Caddyfile; then
             echo '--> Adding port 8450 reverse proxy to Caddyfile...'
-            caddy_block="
-# MY_AI_FACTORY (Autonomous AI Software Factory)
-https://43.156.236.102:8450 {
-    tls {
-        issuer acme {
-            profile shortlived
-        }
-    }
-
-    encode zstd gzip
-    reverse_proxy 127.0.0.1:3005
-}
-"
-            echo "$caddy_block" | sudo tee -a /etc/caddy/Caddyfile >/dev/null
+            printf '\nhttps://43.156.236.102:8450 {\n    tls {\n        issuer acme {\n            profile shortlived\n        }\n    }\n    encode zstd gzip\n    reverse_proxy 127.0.0.1:3005\n}\n' | sudo tee -a /etc/caddy/Caddyfile >/dev/null
             sudo caddy validate --config /etc/caddy/Caddyfile
             sudo systemctl reload caddy
             echo '--> Caddy reloaded successfully on port 8450.'
@@ -234,4 +221,4 @@ https://43.156.236.102:8450 {
           echo "=========================================="
           rm -rf "$stage"
           rm -f "$archive"
-REMOTE
+          REMOTE
