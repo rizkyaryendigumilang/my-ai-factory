@@ -82,9 +82,7 @@ jobs:
 
   deploy-production:
     name: Deploy to Production VPS
-    if: |
-      github.ref == 'refs/heads/main' &&
-      (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.deploy_to_vps != false))
+    if: github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -236,4 +234,4 @@ https://43.156.236.102:8450 {
           echo "=========================================="
           rm -rf "$stage"
           rm -f "$archive"
-          REMOTE
+REMOTE
