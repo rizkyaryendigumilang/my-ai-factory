@@ -8,7 +8,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "node --test tests/*.test.mts"
+    "test": "node --test tests/*.test.mts",
+    "deploy:vps": "powershell -ExecutionPolicy Bypass -File ./scripts/deploy-to-vps.ps1",
+    "deploy:sh": "bash ./scripts/deploy-to-vps.sh"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
