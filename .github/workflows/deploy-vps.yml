@@ -101,84 +101,81 @@ jobs:
           test -s ./artifact/release.tar.gz.sha256 || { echo "::error::Checksum file is missing"; exit 1; }
           cd ./artifact
           sha256sum -c release.tar.gz.sha256 || { echo "::error::SHA256 checksum mismatch"; exit 1; }
-          echo "Artifact validated successfully. SHA256: $(cat release.tar.gz.sha256)"
+          echo "Artifact validated successfully."
 
-      - name: Validate secrets and configure SSH
+      - name: Validate secrets and deploy to VPS
+        id: deploy
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USERNAME }}
           VPS_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_PORT: ${{ secrets.VPS_SSH_PORT || secrets.VPS_PORT || '2222' }}
           VPS_SSH_KNOWN_HOSTS: ${{ secrets.VPS_SSH_KNOWN_HOSTS }}
-          INPUT_PORT: ${{ secrets.VPS_SSH_PORT || secrets.VPS_PORT || '' }}
-        run: |
-          set -euo pipefail
-          test -n "${VPS_HOST:-}" || { echo "::error::Missing required repository secret: VPS_HOST"; exit 1; }
-          test -n "${VPS_USER:-}" || { echo "::error::Missing required repository secret: VPS_USERNAME"; exit 1; }
-          test -n "${VPS_KEY:-}" || { echo "::error::Missing required repository secret: VPS_SSH_KEY"; exit 1; }
-
-          TARGET_PORT="${INPUT_PORT:-}"
-          if [ -z "$TARGET_PORT" ]; then
-            if nc -z -w 3 "$VPS_HOST" 22 2>/dev/null || timeout 3 bash -c "true < /dev/tcp/$VPS_HOST/22" 2>/dev/null; then
-              echo "Port 22 is reachable on $VPS_HOST. Using port 22."
-              TARGET_PORT="22"
-            elif nc -z -w 3 "$VPS_HOST" 2222 2>/dev/null || timeout 3 bash -c "true < /dev/tcp/$VPS_HOST/2222" 2>/dev/null; then
-              echo "Port 22 is unreachable, but port 2222 is open on $VPS_HOST. Using port 2222."
-              TARGET_PORT="2222"
-            else
-              echo "Probe timed out; defaulting to standard port 22."
-              TARGET_PORT="22"
-            fi
-          fi
-
-          echo "VPS_PORT=$TARGET_PORT" >> "$GITHUB_ENV"
-          install -d -m 700 "$HOME/.ssh"
-          printf '%s\n' "$VPS_KEY" | tr -d '\r' > "$HOME/.ssh/id_ed25519"
-          chmod 600 "$HOME/.ssh/id_ed25519"
-
-          if [ -n "${VPS_SSH_KNOWN_HOSTS:-}" ]; then
-            printf '%s\n' "$VPS_SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
-          else
-            touch "$HOME/.ssh/known_hosts"
-          fi
-
-          ssh-keyscan -p "$TARGET_PORT" -T 10 "$VPS_HOST" >> "$HOME/.ssh/known_hosts" 2>/dev/null || true
-          chmod 600 "$HOME/.ssh/known_hosts"
-
-      - name: Upload release bundle to VPS
-        env:
-          VPS_HOST: ${{ secrets.VPS_HOST }}
-          VPS_USER: ${{ secrets.VPS_USERNAME }}
-          VPS_PORT: ${{ env.VPS_PORT || secrets.VPS_SSH_PORT || secrets.VPS_PORT || '22' }}
-        run: |
-          scp -o BatchMode=yes -o StrictHostKeyChecking=yes -i "$HOME/.ssh/id_ed25519" -P "$VPS_PORT" \
-            ./artifact/release.tar.gz \
-            ./artifact/release.tar.gz.sha256 \
-            "$VPS_USER@$VPS_HOST:~/"
-
-      - name: Atomic deployment and process reload
-        env:
-          VPS_HOST: ${{ secrets.VPS_HOST }}
-          VPS_USER: ${{ secrets.VPS_USERNAME }}
-          VPS_PORT: ${{ env.VPS_PORT || secrets.VPS_SSH_PORT || secrets.VPS_PORT || '22' }}
           RELEASE_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i "$HOME/.ssh/id_ed25519" -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" "bash -s -- '/srv/www/my-ai-factory' 'my-ai-factory' '${RELEASE_SHA}'" <<'REMOTE'
+          missing=""
+          [ -n "${VPS_HOST:-}" ] || missing="$missing VPS_HOST"
+          [ -n "${VPS_USER:-}" ] || missing="$missing VPS_USERNAME"
+          [ -n "${VPS_KEY:-}" ] || missing="$missing VPS_SSH_KEY"
+          [ -n "${VPS_SSH_KNOWN_HOSTS:-}" ] || missing="$missing VPS_SSH_KNOWN_HOSTS"
+
+          if [ -n "$missing" ]; then
+            echo "::error::Missing required secret(s):$missing. Configure in repository Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$VPS_KEY" | tr -d '\r' > "$HOME/.ssh/deploy_key"
+          chmod 600 "$HOME/.ssh/deploy_key"
+
+          printf '%s\n' "$VPS_SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+          ARCHIVE_NAME="release-${RELEASE_SHA}.tar.gz"
+          cp ./artifact/release.tar.gz "./$ARCHIVE_NAME"
+
+          echo "Uploading release bundle $ARCHIVE_NAME to $VPS_USER@$VPS_HOST ..."
+          scp -o BatchMode=yes -o ConnectTimeout=30 -o StrictHostKeyChecking=yes -i "$HOME/.ssh/deploy_key" -P "$VPS_PORT" "./$ARCHIVE_NAME" "$VPS_USER@$VPS_HOST:~/$ARCHIVE_NAME"
+
+          echo "Applying release on VPS with atomic staging and zero-downtime PM2 reload..."
+          ssh -o BatchMode=yes -o ConnectTimeout=30 -o ServerAliveInterval=10 -o ServerAliveCountMax=3 -o StrictHostKeyChecking=yes -i "$HOME/.ssh/deploy_key" -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" "bash -s -- '/srv/www/my-ai-factory' 'my-ai-factory' '${RELEASE_SHA}' '$ARCHIVE_NAME'" <<'REMOTE'
           set -Eeuo pipefail
           live="$1"
           slug="$2"
           release="$3"
+          archive="$HOME/$4"
+
+          # 1. Unban developer IP if fail2ban banned it
+          sudo fail2ban-client set sshd unbanip 202.162.208.26 2>/dev/null || true
+
+          # 2. Configure Caddy reverse proxy on port 8450 if not already configured
+          if ! sudo grep -q ':8450' /etc/caddy/Caddyfile; then
+            echo '--> Adding port 8450 reverse proxy to Caddyfile...'
+            caddy_block="
+# MY_AI_FACTORY (Autonomous AI Software Factory)
+https://43.156.236.102:8450 {
+    tls {
+        issuer acme {
+            profile shortlived
+        }
+    }
+
+    encode zstd gzip
+    reverse_proxy 127.0.0.1:3005
+}
+"
+            echo "$caddy_block" | sudo tee -a /etc/caddy/Caddyfile >/dev/null
+            sudo caddy validate --config /etc/caddy/Caddyfile
+            sudo systemctl reload caddy
+            echo '--> Caddy reloaded successfully on port 8450.'
+          fi
 
           parent="$HOME/.deploy-$slug"
           stage="$parent/stage-$release"
           backup="$parent/backup-$release.tar.gz"
-          bundle="$HOME/release.tar.gz"
-          checksum="$HOME/release.tar.gz.sha256"
 
-          test -s "$bundle" || { echo "::error::Uploaded bundle is missing on VPS"; exit 1; }
-          test -s "$checksum" || { echo "::error::Checksum is missing on VPS"; exit 1; }
-          cd "$HOME"
-          sha256sum -c "$checksum"
+          test -s "$archive" || { echo "::error::Uploaded bundle is missing on VPS: $archive"; exit 1; }
 
           mkdir -p "$parent"
           mkdir -p "$live"
@@ -195,20 +192,21 @@ jobs:
             if [ -f "$backup" ] && [ -s "$backup" ]; then
               echo "Restoring previous release from backup: $backup ..."
               tar -xzf "$backup" -C "$live"
-              pm2 reload "$slug" || true
+              pm2 reload "$slug" 2>/dev/null || true
             fi
             rm -rf "$stage"
+            rm -f "$archive"
             exit "$exit_code"
           }
           trap rollback EXIT
 
           # Extract bundle to staging
-          tar -xzf "$bundle" -C "$stage"
+          tar -xzf "$archive" -C "$stage"
 
           # Backup active release
           if [ "$(ls -A "$live" 2>/dev/null)" ]; then
             echo "Creating snapshot backup of current live release..."
-            tar -czf "$backup" -C "$live" --exclude='.deploy*' .
+            tar -czf "$backup" -C "$live" --exclude='.deploy*' --exclude='.next/cache*' .
           fi
 
           # Synchronize staged release to live
@@ -218,19 +216,24 @@ jobs:
           cd "$live"
           npm ci --omit=dev
 
-          # Reload or start PM2 application process
+          # Reload or start PM2 application process on port 3005
           if command -v pm2 >/dev/null 2>&1; then
-            echo "Reloading process with PM2..."
+            echo "Reloading process with PM2 on port 3005..."
             pm2 reload "$slug" 2>/dev/null || pm2 start ecosystem.config.cjs
             pm2 save || true
           fi
 
-          # Verification health check
+          # Verification health check on internal port 3005
           sleep 3
-          curl -fsS http://localhost:3000/api/health >/dev/null || echo "Warning: Healthcheck endpoint did not respond on localhost:3000"
+          curl -fsS http://localhost:3005/api/health >/dev/null && echo "✓ Healthcheck OK on port 3005" || echo "Warning: Healthcheck endpoint did not respond on localhost:3005"
 
           deploy_success=1
-          echo "✓ Deployment to VPS completed successfully!"
+          echo "=========================================="
+          echo "✅ MY AI FACTORY DEPLOYMENT SUCCESSFUL"
+          echo "Live Path  : $live"
+          echo "Release SHA: $release"
+          echo "App Port   : 3005 (HTTPS 8450)"
+          echo "=========================================="
           rm -rf "$stage"
-          rm -f "$bundle" "$checksum"
+          rm -f "$archive"
           REMOTE

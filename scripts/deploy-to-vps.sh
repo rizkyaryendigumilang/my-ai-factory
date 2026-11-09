@@ -11,21 +11,22 @@ KEY_FILE="${KEY_FILE:-$HOME/.ssh/ssh.pem}"
 REMOTE_DIR="${REMOTE_DIR:-/srv/www/my-ai-factory}"
 APP_NAME="${APP_NAME:-my-ai-factory}"
 SSH_ALIAS="${SSH_ALIAS:-vpsku}"
+APP_PORT="${APP_PORT:-3005}"
 
 echo "=========================================================="
 echo " 🚀 MY AI FACTORY - 1-CLICK DEPLOYMENT TO VPS"
-echo " Target : $VPS_USER@$VPS_HOST (Port: $VPS_PORT, App: $APP_NAME)"
+echo " Target : $VPS_USER@$VPS_HOST (SSH Port: $VPS_PORT, App Port: $APP_PORT, App: $APP_NAME)"
 echo "=========================================================="
 
 # 1. Periksa Konektivitas SSH
 echo "[1/6] Memeriksa konektivitas SSH..."
 USE_ALIAS=0
-if ssh -o BatchMode=yes -o ConnectTimeout=4 "$SSH_ALIAS" "echo SSH_OK" >/dev/null 2>&1; then
+if ssh -o BatchMode=yes -o ConnectTimeout=5 "$SSH_ALIAS" "echo SSH_OK" >/dev/null 2>&1; then
     USE_ALIAS=1
     echo "  ✓ Terhubung via alias SSH: $SSH_ALIAS"
-elif ssh -o BatchMode=yes -o ConnectTimeout=4 -p "$VPS_PORT" -i "$KEY_FILE" "$VPS_USER@$VPS_HOST" "echo SSH_OK" >/dev/null 2>&1; then
+elif ssh -o BatchMode=yes -o ConnectTimeout=5 -p "$VPS_PORT" -i "$KEY_FILE" "$VPS_USER@$VPS_HOST" "echo SSH_OK" >/dev/null 2>&1; then
     echo "  ✓ Terhubung via Port: $VPS_PORT"
-elif ssh -o BatchMode=yes -o ConnectTimeout=4 -p 22 -i "$KEY_FILE" "$VPS_USER@$VPS_HOST" "echo SSH_OK" >/dev/null 2>&1; then
+elif ssh -o BatchMode=yes -o ConnectTimeout=5 -p 22 -i "$KEY_FILE" "$VPS_USER@$VPS_HOST" "echo SSH_OK" >/dev/null 2>&1; then
     VPS_PORT=22
     echo "  ✓ Terhubung via Port: 22"
 else
@@ -44,7 +45,7 @@ npm run build
 echo -e "\n[4/6] Mengemas release.tar.gz..."
 rm -f release.tar.gz
 tar -czf release.tar.gz .next public package.json package-lock.json next.config.js ecosystem.config.cjs
-echo "  ✓ Paket rilis siap: $(du -h release.tar.gz | cut -f1)"
+echo "  ✓ Paket rilis siap: $(du -h release.tar.gz 2>/dev/null | cut -f1 || ls -lh release.tar.gz | awk '{print $5}')"
 
 # 5. Upload ke VPS
 echo -e "\n[5/6] Mengunggah paket ke VPS..."
@@ -75,8 +76,8 @@ if command -v pm2 >/dev/null 2>&1; then
     pm2 save
 fi
 
-sleep 2
-curl -fsS http://localhost:3000/api/health >/dev/null && echo '✓ Healthcheck OK' || true
+sleep 3
+curl -fsS http://localhost:$APP_PORT/api/health >/dev/null && echo '✓ Healthcheck OK' || true
 rm -f ~/release.tar.gz
 echo '✓ Selesai!'
 "
@@ -91,5 +92,8 @@ rm -f release.tar.gz
 
 echo "=========================================================="
 echo " 🎉 APLIKASI TELAH AKTIF DI VPS!"
-echo " URL: http://$VPS_HOST:3000"
+echo " URL (HTTPS):       https://$VPS_HOST:8450"
+echo " Virtual Office:    https://$VPS_HOST:8450/office"
+echo " Dashboard:         https://$VPS_HOST:8450/dashboard"
+echo " Internal Port:     $APP_PORT (Bebas bentrok Open WebUI:3000)"
 echo "=========================================================="

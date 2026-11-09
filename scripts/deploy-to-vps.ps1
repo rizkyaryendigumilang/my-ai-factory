@@ -17,14 +17,15 @@ param(
     [string]$KeyFile = "$HOME\.ssh\ssh.pem",
     [string]$RemoteDir = "/srv/www/my-ai-factory",
     [string]$AppName = "my-ai-factory",
-    [string]$SshAlias = "vpsku"
+    [string]$SshAlias = "vpsku",
+    [string]$AppPort = "3005"
 )
 
 $ErrorActionPreference = "Stop"
 
 Write-Host "==========================================================" -ForegroundColor Cyan
 Write-Host " 🚀 MY AI FACTORY - 1-CLICK DEPLOYMENT TO VPS" -ForegroundColor Cyan
-Write-Host " Target : $VpsUser@$VpsHost (Port: $VpsPort, App: $AppName)" -ForegroundColor Cyan
+Write-Host " Target : $VpsUser@$VpsHost (SSH Port: $VpsPort, App Port: $AppPort, App: $AppName)" -ForegroundColor Cyan
 Write-Host "==========================================================" -ForegroundColor Cyan
 
 # 1. Deteksi Metode SSH (Gunakan alias vpsku jika tersedia, atau direct SSH key)
@@ -35,7 +36,7 @@ if (Test-Path "$HOME\.ssh\config") {
     $configContent = Get-Content "$HOME\.ssh\config" -Raw
     if ($configContent -match "Host\s+$SshAlias") {
         Write-Host "  -> Ditemukan konfigurasi SSH alias '$SshAlias'." -ForegroundColor Gray
-        $sshTest = ssh -o BatchMode=yes -o ConnectTimeout=4 $SshAlias "echo SSH_OK" 2>$null
+        $sshTest = ssh -o BatchMode=yes -o ConnectTimeout=5 $SshAlias "echo SSH_OK" 2>$null
         if ($sshTest -match "SSH_OK") {
             $UseAlias = $true
             Write-Host "  ✓ Terhubung via alias '$SshAlias'." -ForegroundColor Green
@@ -45,7 +46,11 @@ if (Test-Path "$HOME\.ssh\config") {
 
 if (-not $UseAlias) {
     if (-not (Test-Path $KeyFile)) {
-        Write-Warning "SSH Key '$KeyFile' tidak ditemukan. Memeriksa direct SSH..."
+        if (Test-Path "$HOME\Downloads\ssh.pem") {
+            $KeyFile = "$HOME\Downloads\ssh.pem"
+        } else {
+            Write-Warning "SSH Key '$KeyFile' tidak ditemukan."
+        }
     }
     # Uji Port 2222 lalu Port 22
     $ports = @($VpsPort, "22")
@@ -53,7 +58,7 @@ if (-not $UseAlias) {
     foreach ($p in $ports) {
         Write-Host "  -> Mencoba koneksi ke $VpsHost`:$p..." -ForegroundColor Gray
         $testCmd = "echo SSH_OK"
-        $sshOut = & ssh -o BatchMode=yes -o ConnectTimeout=4 -p $p -i $KeyFile "$VpsUser@$VpsHost" $testCmd 2>$null
+        $sshOut = & ssh -o BatchMode=yes -o ConnectTimeout=5 -p $p -i $KeyFile "$VpsUser@$VpsHost" $testCmd 2>$null
         if ($sshOut -match "SSH_OK") {
             $connectedPort = $p
             Write-Host "  ✓ Terhubung pada port $p!" -ForegroundColor Green
@@ -64,7 +69,7 @@ if (-not $UseAlias) {
     if ($null -ne $connectedPort) {
         $VpsPort = $connectedPort
     } else {
-        Write-Warning "SSH tidak merespons secara langsung (mungkin port firewall / IP whitelist)."
+        Write-Warning "SSH langsung belum merespons (mungkin rate limit / firewall ban)."
         Write-Host "  Langkah build dan packaging lokal tetap akan dijalankan." -ForegroundColor Yellow
     }
 }
@@ -92,7 +97,6 @@ Write-Host "`n[4/6] Mengemas artefak rilis ke release.tar.gz..." -ForegroundColo
 $tarFile = "release.tar.gz"
 if (Test-Path $tarFile) { Remove-Item -Force $tarFile }
 
-# Pastikan tar tersedia (bawaan Windows 10/11)
 tar -czf $tarFile .next public package.json package-lock.json next.config.js ecosystem.config.cjs
 if (-not (Test-Path $tarFile)) {
     Write-Error "Gagal membuat $tarFile."
@@ -111,7 +115,7 @@ if ($UseAlias) {
 
 if ($LASTEXITCODE -ne 0) {
     Write-Warning "Upload via SCP gagal atau SSH timeout."
-    Write-Host "`nPetunjuk Upload Manual:" -ForegroundColor Yellow
+    Write-Host "`nPetunjuk Upload Alternatif:" -ForegroundColor Yellow
     Write-Host "1. Salin berkas '$tarFile' ke server VPS Anda." -ForegroundColor Gray
     Write-Host "2. Jalankan perintah deploy di VPS:" -ForegroundColor Gray
     Write-Host "   mkdir -p $RemoteDir && tar -xzf ~/release.tar.gz -C $RemoteDir && cd $RemoteDir && npm ci --omit=dev && pm2 reload $AppName || pm2 start ecosystem.config.cjs" -ForegroundColor Cyan
@@ -143,7 +147,7 @@ cd $RemoteDir
 echo '--> Memperbarui dependensi produksi...'
 npm ci --omit=dev
 
-echo '--> Me-reload proses PM2...'
+echo '--> Me-reload proses PM2 pada port $AppPort...'
 if command -v pm2 >/dev/null 2>&1; then
     pm2 reload $AppName 2>/dev/null || pm2 start ecosystem.config.cjs
     pm2 save
@@ -153,8 +157,8 @@ else
 fi
 
 echo '--> Verifikasi healthcheck lokal server...'
-sleep 2
-curl -fsS http://localhost:3000/api/health >/dev/null && echo '✓ Healthcheck OK (Status 200)' || echo 'Layanan sedang inisialisasi...'
+sleep 3
+curl -fsS http://localhost:$AppPort/api/health >/dev/null && echo '✓ Healthcheck OK (Status 200)' || echo 'Layanan sedang inisialisasi...'
 
 rm -f ~/release.tar.gz
 echo '✓ Deployment Selesai Sukses!'
@@ -171,7 +175,8 @@ Remove-Item -Force $tarFile -ErrorAction SilentlyContinue
 
 Write-Host "`n==========================================================" -ForegroundColor Green
 Write-Host " 🎉 APLIKASI TELAH AKTIF DI VPS!" -ForegroundColor Green
-Write-Host " URL Aplikasi: http://$VpsHost`:3000" -ForegroundColor Cyan
-Write-Host " Virtual Office: http://$VpsHost`:3000/office" -ForegroundColor Cyan
-Write-Host " Dashboard: http://$VpsHost`:3000/dashboard" -ForegroundColor Cyan
+Write-Host " URL Aplikasi (HTTPS): https://$VpsHost`:8450" -ForegroundColor Cyan
+Write-Host " Virtual Office:       https://$VpsHost`:8450/office" -ForegroundColor Cyan
+Write-Host " Dashboard:            https://$VpsHost`:8450/dashboard" -ForegroundColor Cyan
+Write-Host " Internal PM2 Port:    $AppPort (Bebas dari bentrok Open WebUI:3000)" -ForegroundColor Yellow
 Write-Host "==========================================================" -ForegroundColor Green
