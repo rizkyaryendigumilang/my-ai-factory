@@ -1,0 +1,99 @@
+{
+  "_comment": "Default Virtual Office config — customize during setup or via environment variables",
+  "office": {
+    "name": "Virtual Office",
+    "port": 8090,
+    "wsPort": 8091,
+    "previewBubbles": {
+      "displayMode": "consistent",
+      "size": "large",
+      "contentZoom": 100
+    }
+  },
+  "openclaw": {
+    "gatewayUrl": "ws://127.0.0.1:18789",
+    "gatewayHttp": "http://127.0.0.1:18789"
+  },
+  "hermes": {
+    "enabled": true,
+    "timeoutSec": 600,
+    "resourceRoot": "/data/hermes",
+    "resourceAccess": "read-write",
+    "runHistoryMaxMessages": 120,
+    "runHistoryMaxChars": 120000,
+    "runHistoryMaxMessageChars": 32000,
+    "connections": [
+      {
+        "id": "hermes-vps",
+        "name": "Hermes VPS",
+        "apiUrl": "https://43.156.236.102:8444",
+        "dashboardUrl": "https://43.156.236.102:8444/?profile=default",
+        "apiKey": "Apaya1234",
+        "enabled": true
+      }
+    ],
+    "platformEnabled": true,
+    "platformToken": "Apaya1234",
+    "platformAgentId": "hermes-gateway"
+  },
+  "presence": {
+    "statusDir": "/data",
+    "inferenceEnabled": true,
+    "inferenceIdleTimeoutSec": 300
+  },
+  "weather": {
+    "location": null
+  },
+  "features": {
+    "pcMetrics": false,
+    "smsPanel": false,
+    "browserPanel": false,
+    "whisper": false,
+    "apiUsage": true
+  },
+  "pcMetrics": {
+    "url": null
+  },
+  "whisper": {
+    "url": "http://127.0.0.1:8087"
+  },
+  "browser": {
+    "cdpUrl": null,
+    "viewerUrl": null
+  },
+  "sms": {
+    "ownerAgentId": null,
+    "agentId": null,
+    "twilioAccountSid": null,
+    "twilioAuthToken": null,
+    "fromNumber": null
+  },
+  "codex": {
+    "enabled": true,
+    "homePath": "~/.codex",
+    "binary": "codex",
+    "workspaceRoot": "/data/codex-agents",
+    "mainWorkspace": "/data/codex-main",
+    "timeoutSec": 900,
+    "model": "",
+    "sandbox": "workspace-write",
+    "approvalPolicy": "never",
+    "preferAppServer": true,
+    "includeMain": true,
+    "includeNativeAgents": true,
+    "registerNativeAgents": true
+  },
+  "claudeCode": {
+    "enabled": true,
+    "homePath": "~/.claude",
+    "binary": "claude",
+    "workspaceRoot": "/data/claude-code-agents",
+    "mainWorkspace": "/data/claude-code-main",
+    "timeoutSec": 900,
+    "model": "",
+    "permissionMode": "acceptEdits",
+    "includeMain": true,
+    "includeNativeAgents": true,
+    "registerNativeAgents": true
+  }
+}

@@ -1,0 +1,10 @@
+node_modules
+.next
+.env.local
+.env*.local
+.data/
+pb_data/
+pocketbase.exe
+*.tsbuildinfo
+.tmp/
+.tmp*

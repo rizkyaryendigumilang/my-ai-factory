@@ -1,0 +1,236 @@
+name: Production CI/CD to VPS
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'README.md'
+      - 'docs/**'
+      - '.gitignore'
+  workflow_dispatch:
+    inputs:
+      deploy_to_vps:
+        description: 'Deploy bundle to VPS after successful build'
+        type: boolean
+        default: true
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: my-ai-factory-production-vps
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Validate, test, and build Next.js application
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run automated test suite
+        run: npm test
+
+      - name: Build Next.js production bundle
+        env:
+          CI: true
+          NEXT_TELEMETRY_DISABLED: 1
+        run: npm run build
+
+      - name: Validate build output integrity
+        run: |
+          set -euo pipefail
+          test -d .next || { echo "::error::.next build directory is missing"; exit 1; }
+          test -d public || { echo "::error::public directory is missing"; exit 1; }
+          test -f package.json || { echo "::error::package.json is missing"; exit 1; }
+          test -f ecosystem.config.cjs || { echo "::error::ecosystem.config.cjs is missing"; exit 1; }
+          echo "✓ Build output and configurations passed all integrity checks."
+
+      - name: Package production release bundle
+        run: |
+          tar -czf release.tar.gz \
+            .next \
+            public \
+            package.json \
+            package-lock.json \
+            next.config.js \
+            ecosystem.config.cjs
+
+      - name: Generate SHA256 checksum
+        run: sha256sum release.tar.gz > release.tar.gz.sha256
+
+      - name: Upload production release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: my-ai-factory-release
+          path: |
+            release.tar.gz
+            release.tar.gz.sha256
+          if-no-files-found: error
+          retention-days: 14
+
+  deploy-production:
+    name: Deploy to Production VPS
+    if: |
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.deploy_to_vps != false))
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download release artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: my-ai-factory-release
+          path: ./artifact
+
+      - name: Validate artifact integrity before deployment
+        run: |
+          set -euo pipefail
+          test -s ./artifact/release.tar.gz || { echo "::error::Downloaded release.tar.gz is missing or empty"; exit 1; }
+          test -s ./artifact/release.tar.gz.sha256 || { echo "::error::Checksum file is missing"; exit 1; }
+          cd ./artifact
+          sha256sum -c release.tar.gz.sha256 || { echo "::error::SHA256 checksum mismatch"; exit 1; }
+          echo "Artifact validated successfully. SHA256: $(cat release.tar.gz.sha256)"
+
+      - name: Validate secrets and configure SSH
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USERNAME }}
+          VPS_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_SSH_KNOWN_HOSTS: ${{ secrets.VPS_SSH_KNOWN_HOSTS }}
+          INPUT_PORT: ${{ secrets.VPS_SSH_PORT || secrets.VPS_PORT || '' }}
+        run: |
+          set -euo pipefail
+          test -n "${VPS_HOST:-}" || { echo "::error::Missing required repository secret: VPS_HOST"; exit 1; }
+          test -n "${VPS_USER:-}" || { echo "::error::Missing required repository secret: VPS_USERNAME"; exit 1; }
+          test -n "${VPS_KEY:-}" || { echo "::error::Missing required repository secret: VPS_SSH_KEY"; exit 1; }
+
+          TARGET_PORT="${INPUT_PORT:-}"
+          if [ -z "$TARGET_PORT" ]; then
+            if nc -z -w 3 "$VPS_HOST" 22 2>/dev/null || timeout 3 bash -c "true < /dev/tcp/$VPS_HOST/22" 2>/dev/null; then
+              echo "Port 22 is reachable on $VPS_HOST. Using port 22."
+              TARGET_PORT="22"
+            elif nc -z -w 3 "$VPS_HOST" 2222 2>/dev/null || timeout 3 bash -c "true < /dev/tcp/$VPS_HOST/2222" 2>/dev/null; then
+              echo "Port 22 is unreachable, but port 2222 is open on $VPS_HOST. Using port 2222."
+              TARGET_PORT="2222"
+            else
+              echo "Probe timed out; defaulting to standard port 22."
+              TARGET_PORT="22"
+            fi
+          fi
+
+          echo "VPS_PORT=$TARGET_PORT" >> "$GITHUB_ENV"
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$VPS_KEY" | tr -d '\r' > "$HOME/.ssh/id_ed25519"
+          chmod 600 "$HOME/.ssh/id_ed25519"
+
+          if [ -n "${VPS_SSH_KNOWN_HOSTS:-}" ]; then
+            printf '%s\n' "$VPS_SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          else
+            touch "$HOME/.ssh/known_hosts"
+          fi
+
+          ssh-keyscan -p "$TARGET_PORT" -T 10 "$VPS_HOST" >> "$HOME/.ssh/known_hosts" 2>/dev/null || true
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+      - name: Upload release bundle to VPS
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USERNAME }}
+          VPS_PORT: ${{ env.VPS_PORT || secrets.VPS_SSH_PORT || secrets.VPS_PORT || '22' }}
+        run: |
+          scp -o BatchMode=yes -o StrictHostKeyChecking=yes -i "$HOME/.ssh/id_ed25519" -P "$VPS_PORT" \
+            ./artifact/release.tar.gz \
+            ./artifact/release.tar.gz.sha256 \
+            "$VPS_USER@$VPS_HOST:~/"
+
+      - name: Atomic deployment and process reload
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USERNAME }}
+          VPS_PORT: ${{ env.VPS_PORT || secrets.VPS_SSH_PORT || secrets.VPS_PORT || '22' }}
+          RELEASE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i "$HOME/.ssh/id_ed25519" -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" "bash -s -- '/srv/www/my-ai-factory' 'my-ai-factory' '${RELEASE_SHA}'" <<'REMOTE'
+          set -Eeuo pipefail
+          live="$1"
+          slug="$2"
+          release="$3"
+
+          parent="$HOME/.deploy-$slug"
+          stage="$parent/stage-$release"
+          backup="$parent/backup-$release.tar.gz"
+          bundle="$HOME/release.tar.gz"
+          checksum="$HOME/release.tar.gz.sha256"
+
+          test -s "$bundle" || { echo "::error::Uploaded bundle is missing on VPS"; exit 1; }
+          test -s "$checksum" || { echo "::error::Checksum is missing on VPS"; exit 1; }
+          cd "$HOME"
+          sha256sum -c "$checksum"
+
+          mkdir -p "$parent"
+          mkdir -p "$live"
+          rm -rf "$stage"
+          mkdir -p "$stage"
+
+          deploy_success=0
+          rollback() {
+            local exit_code=$?
+            if [ "$deploy_success" -eq 1 ]; then
+              return 0
+            fi
+            echo "::error::Deployment failure detected (exit code: $exit_code). Initiating rollback..."
+            if [ -f "$backup" ] && [ -s "$backup" ]; then
+              echo "Restoring previous release from backup: $backup ..."
+              tar -xzf "$backup" -C "$live"
+              pm2 reload "$slug" || true
+            fi
+            rm -rf "$stage"
+            exit "$exit_code"
+          }
+          trap rollback EXIT
+
+          # Extract bundle to staging
+          tar -xzf "$bundle" -C "$stage"
+
+          # Backup active release
+          if [ "$(ls -A "$live" 2>/dev/null)" ]; then
+            echo "Creating snapshot backup of current live release..."
+            tar -czf "$backup" -C "$live" --exclude='.deploy*' .
+          fi
+
+          # Synchronize staged release to live
+          rsync -a --delete --exclude='.data' --exclude='pb_data' --exclude='.env*' "$stage/" "$live/"
+
+          # Install production dependencies inside live folder
+          cd "$live"
+          npm ci --omit=dev
+
+          # Reload or start PM2 application process
+          if command -v pm2 >/dev/null 2>&1; then
+            echo "Reloading process with PM2..."
+            pm2 reload "$slug" 2>/dev/null || pm2 start ecosystem.config.cjs
+            pm2 save || true
+          fi
+
+          # Verification health check
+          sleep 3
+          curl -fsS http://localhost:3000/api/health >/dev/null || echo "Warning: Healthcheck endpoint did not respond on localhost:3000"
+
+          deploy_success=1
+          echo "✓ Deployment to VPS completed successfully!"
+          rm -rf "$stage"
+          rm -f "$bundle" "$checksum"
+          REMOTE
