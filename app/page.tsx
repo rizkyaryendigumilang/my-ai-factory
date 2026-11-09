@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Building2, FolderGit2, Layers, Terminal } from 'lucide-react';
+import { ArrowRight, Building2, FolderGit2, Layers, Mic, MicOff, Terminal } from 'lucide-react';
 import { api } from '@/lib/use-project';
 import { GEM_PERSONAS, GEM_PERSONA_IDS, type AgentRole, type GemPersona } from '@/types';
 
@@ -86,6 +86,48 @@ export default function LandingPage() {
   const [activeStation, setActiveStation] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [listening, setListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  const toggleListening = () => {
+    if (listening) {
+      recognitionRef.current?.stop();
+      setListening(false);
+      return;
+    }
+
+    const SpeechRec = typeof window !== 'undefined' && ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
+    if (!SpeechRec) {
+      alert('Browser Anda belum mendukung input suara Web Speech API. Gunakan Google Chrome atau Edge.');
+      return;
+    }
+
+    try {
+      const rec = new SpeechRec();
+      rec.lang = 'id-ID';
+      rec.continuous = true;
+      rec.interimResults = false;
+
+      rec.onresult = (e: any) => {
+        const text = Array.from(e.results)
+          .map((r: any) => r[0]?.transcript)
+          .join(' ')
+          .trim();
+        if (text) {
+          setPrompt((prev) => (prev ? `${prev} ${text}` : text));
+        }
+      };
+
+      rec.onerror = () => setListening(false);
+      rec.onend = () => setListening(false);
+
+      rec.start();
+      recognitionRef.current = rec;
+      setListening(true);
+    } catch {
+      setListening(false);
+    }
+  };
 
   const currentStation = STATIONS[activeStation];
 
@@ -151,7 +193,20 @@ export default function LandingPage() {
                 <div>
                   <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
                     <label htmlFor="raw-prompt" className="text-sm font-medium">Spesifikasi aplikasi</label>
-                    <div className="flex flex-wrap gap-1.5">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={toggleListening}
+                        className={`inline-flex items-center gap-1 rounded-sm border px-2 py-0.5 text-xs font-medium transition-[transform,background-color,border-color,color] duration-100 ease-out active:scale-[0.97] ${
+                          listening
+                            ? 'border-red-500/80 bg-red-500/10 text-red-400 animate-pulse'
+                            : 'border-border bg-card text-muted-foreground hover:border-primary hover:text-foreground'
+                        }`}
+                        title={listening ? 'Klik untuk berhenti mendikte' : 'Dikte spesifikasi dengan suara (Bahasa Indonesia)'}
+                      >
+                        {listening ? <MicOff className="h-3 w-3 text-red-400" /> : <Mic className="h-3 w-3 text-primary" />}
+                        <span>{listening ? 'Mendengarkan…' : 'Dikte Suara'}</span>
+                      </button>
                       {PRESETS.map((preset) => (
                         <button
                           key={preset.label}

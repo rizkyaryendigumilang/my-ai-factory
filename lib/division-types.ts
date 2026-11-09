@@ -13,6 +13,11 @@ export interface DivisionAgentConfig {
   description: string;
 }
 
+export function isRemoteDivision(config?: DivisionAgentConfig): boolean {
+  if (!config) return false;
+  return config.source === 'hermes-vps' || config.source === 'router9-vps' || config.source === 'custom-vps';
+}
+
 export interface ProviderPreset {
   id: string;
   label: string;

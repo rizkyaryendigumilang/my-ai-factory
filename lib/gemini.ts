@@ -8,7 +8,7 @@ import {
 /** Server-only Gemini wrapper. Never import this from a client component. */
 
 /** Primary model, then fallbacks tried when a model is unavailable (404) or overloaded (503). */
-const MODELS = [process.env.GEMINI_MODEL ?? 'gemini-3.5-flash', ...(process.env.GEMINI_FALLBACK_MODELS ?? 'gemini-3.8-flash,gemini-flash-latest').split(',')]
+const MODELS = [process.env.GEMINI_MODEL ?? 'gemini-1.5-flash', ...(process.env.GEMINI_FALLBACK_MODELS ?? 'gemini-2.0-flash,gemini-1.5-pro,gemini-flash-latest').split(',')]
   .map((m) => m.trim())
   .filter(Boolean);
 const REQUEST_TIMEOUT_MS = 240_000;

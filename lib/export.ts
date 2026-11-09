@@ -1,7 +1,7 @@
 import 'server-only';
 import JSZip from 'jszip';
-import { diagramToDrawio, isDiagramDoc } from '@/lib/drawio';
-import { exportFilename, slug } from '@/lib/ecc-core';
+import { diagramToDrawio, isDiagramDoc } from './drawio';
+import { exportFilename, slug } from './ecc-core';
 import type { ProjectDocument, ProjectFile } from '@/types';
 
 export { exportFilename, slug };

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { Dialog, DialogHeader, DialogFooter } from '@/components/ui/dialog';
 import {
   Check,
   Cpu,
@@ -75,16 +76,6 @@ export default function DivisionAgentModal({
       setPingStatus(null);
     }
   }, [isOpen, fetchConfigs]);
-
-  // Handle escape key
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [isOpen, onClose]);
 
   const handleProviderChange = (role: AgentRole, source: AgentSource) => {
     setConfigs((prev) => {
@@ -248,41 +239,14 @@ export default function DivisionAgentModal({
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 animate-scrim-in"
-      onClick={onClose}
-    >
-      <div
-        className="relative flex max-h-[92vh] w-full max-w-4xl flex-col rounded-lg border border-white/10 bg-card/95 shadow-2xl backdrop-blur-xl animate-modal-in"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Modal Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-border px-5 py-3.5">
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-7 w-7 items-center justify-center rounded-sm bg-primary text-primary-foreground">
-              <SlidersHorizontal className="h-4 w-4" />
-            </span>
-            <div>
-              <h2 className="text-xl font-semibold tracking-tight text-foreground">
-                Pilih & Konfigurasi Agen VPS Divisi Kantor
-              </h2>
-              <p className="text-xs text-muted-foreground">
-                Tentukan penyedia AI dan profil model dari VPS (Hermes 8444 / 9Router 8443 / Native) untuk setiap divisi.
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-sm p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
-            aria-label="Tutup jendela pengaturan"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+    <Dialog isOpen={isOpen} onClose={onClose} maxWidth="max-w-4xl">
+      <DialogHeader
+        title="Pilih & Konfigurasi Agen VPS Divisi Kantor"
+        description="Tentukan penyedia AI dan profil model dari VPS (Hermes 8444 / 9Router 8443 / Native) untuk setiap divisi."
+        icon={<SlidersHorizontal className="h-4 w-4" />}
+        onClose={onClose}
+      />
 
         {/* Quick Toolbar */}
         <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border bg-secondary/40 px-5 py-2.5 text-xs">
@@ -500,7 +464,7 @@ export default function DivisionAgentModal({
         </div>
 
         {/* Modal Footer */}
-        <div className="flex shrink-0 items-center justify-between border-t border-border bg-card px-5 py-3">
+        <DialogFooter>
           <div className="flex items-center gap-2 text-xs">
             {saveSuccess && (
               <span className="inline-flex items-center gap-1 font-medium text-primary">
@@ -528,8 +492,7 @@ export default function DivisionAgentModal({
               <span>{saving ? 'Menyimpan…' : 'Simpan & Terapkan ke Kantor'}</span>
             </button>
           </div>
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+    </Dialog>
   );
 }

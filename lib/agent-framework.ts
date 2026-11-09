@@ -17,6 +17,8 @@ import {
 import { allowedSkills, getSkill } from '@/lib/skills';
 import * as mock from '@/lib/mock';
 import * as store from '@/lib/store';
+import { getDivisionConfigs } from '@/lib/division-config';
+import { isRemoteDivision, dispatchToRemoteAgent } from '@/lib/hermes-client';
 import {
   GEM_PERSONAS,
   type AgentRole,
@@ -314,10 +316,25 @@ async function runPipeline(projectId: string, resume: boolean, provider: AgentPr
       await log(role, 'completed', 'Memakai hasil sebelumnya.');
       return prev(reuse[0]) as T;
     }
-    await log(role, 'running', startMsg);
+
+    const divisions = getDivisionConfigs();
+    const divConfig = divisions[role];
+    const isRemote = isRemoteDivision(divConfig);
+
+    if (isRemote) {
+      await log(
+        role,
+        'running',
+        `${startMsg} [Routing ke ${divConfig.source.toUpperCase()}: ${divConfig.agentName} (${divConfig.modelOrProfile})]`
+      );
+    } else {
+      await log(role, 'running', startMsg);
+    }
+
     try {
       const { value, summary } = await fn();
-      await log(role, 'completed', summary);
+      const finalSummary = isRemote ? `${summary} (via ${divConfig.source})` : summary;
+      await log(role, 'completed', finalSummary);
       return value;
     } catch (err: any) {
       if (fallbackFn && isQuotaOrServiceError(err)) {

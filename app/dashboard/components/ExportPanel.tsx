@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { Archive, Check, Copy, Download, History, RotateCcw, Save } from 'lucide-react';
+import { Archive, Check, Copy, Download, ExternalLink, FolderGit2, History, RotateCcw, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogHeader, DialogFooter } from '@/components/ui/dialog';
 import { api } from '@/lib/use-project';
 import type { ProjectVersion } from '@/types';
 
@@ -25,6 +26,36 @@ export default function ExportPanel({
   const [confirmRestoreId, setConfirmRestoreId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [copiedId, setCopiedId] = useState(false);
+
+  const [showGithubModal, setShowGithubModal] = useState(false);
+  const [ghToken, setGhToken] = useState('');
+  const [ghRepo, setGhRepo] = useState('');
+  const [ghPrivate, setGhPrivate] = useState(false);
+  const [ghLoading, setGhLoading] = useState(false);
+  const [ghError, setGhError] = useState('');
+  const [ghSuccess, setGhSuccess] = useState<{ url: string; repo: string } | null>(null);
+
+  const pushToGithub = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setGhLoading(true);
+    setGhError('');
+    setGhSuccess(null);
+    try {
+      const res = await api(`/api/projects/${projectId}/github`, {
+        method: 'POST',
+        body: JSON.stringify({
+          token: ghToken,
+          repoName: ghRepo || undefined,
+          isPrivate: ghPrivate,
+        }),
+      });
+      setGhSuccess({ url: res.url, repo: res.repo });
+    } catch (err: any) {
+      setGhError(err.message || 'Gagal export ke GitHub');
+    } finally {
+      setGhLoading(false);
+    }
+  };
 
   const run = async (fn: () => Promise<unknown>) => {
     setWorking(true);
@@ -71,15 +102,112 @@ export default function ExportPanel({
           </div>
         </div>
 
-        <Button asChild={fileCount > 0} disabled={!fileCount}>
-          {fileCount > 0 ? (
-            <a href={`/api/projects/${projectId}/export`}>
-              <Download className="mr-1.5 h-4 w-4" /> Unduh .zip ({fileCount} file)
-            </a>
-          ) : (
-            <span>Belum ada file</span>
-          )}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button asChild={fileCount > 0} disabled={!fileCount}>
+            {fileCount > 0 ? (
+              <a href={`/api/projects/${projectId}/export`}>
+                <Download className="mr-1.5 h-4 w-4" /> Unduh .zip ({fileCount} file)
+              </a>
+            ) : (
+              <span>Belum ada file</span>
+            )}
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!fileCount || busy}
+            onClick={() => setShowGithubModal(true)}
+          >
+            <FolderGit2 className="mr-1.5 h-4 w-4 text-primary" /> Push ke GitHub
+          </Button>
+        </div>
+
+        <Dialog isOpen={showGithubModal} onClose={() => setShowGithubModal(false)} maxWidth="max-w-md">
+          <DialogHeader
+            title="Push Proyek ke GitHub"
+            description="Buat repositori baru di akun GitHub Anda dan commit seluruh kode Next.js & dokumen arsitektur."
+            icon={<FolderGit2 className="h-4 w-4" />}
+            onClose={() => setShowGithubModal(false)}
+          />
+          <form onSubmit={pushToGithub} className="p-5 space-y-4 text-sm">
+            {ghSuccess ? (
+              <div className="rounded-md border border-primary/30 bg-primary/10 p-4 space-y-2 text-center">
+                <Check className="h-6 w-6 text-primary mx-auto" />
+                <p className="font-semibold text-foreground">Repositori Berhasil Dibuat!</p>
+                <p className="text-xs text-muted-foreground">{ghSuccess.repo}</p>
+                <a
+                  href={ghSuccess.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-sm bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 mt-2"
+                >
+                  <span>Buka di GitHub</span>
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <label className="block mb-1 text-xs font-medium text-foreground">
+                    GitHub Personal Access Token (classic atau fine-grained dengan izin repo)
+                  </label>
+                  <input
+                    type="password"
+                    value={ghToken}
+                    onChange={(e) => setGhToken(e.target.value)}
+                    placeholder="ghp_xxxxxxxxxxxx atau github_pat_xxxx"
+                    required
+                    className="w-full h-9 rounded-sm border border-input bg-background px-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block mb-1 text-xs font-medium text-foreground">
+                    Nama Repositori (opsional)
+                  </label>
+                  <input
+                    type="text"
+                    value={ghRepo}
+                    onChange={(e) => setGhRepo(e.target.value)}
+                    placeholder="my-awesome-app"
+                    className="w-full h-9 rounded-sm border border-input bg-background px-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="gh-private"
+                    checked={ghPrivate}
+                    onChange={(e) => setGhPrivate(e.target.checked)}
+                    className="rounded border-input text-primary focus:ring-primary"
+                  />
+                  <label htmlFor="gh-private" className="text-xs text-foreground">
+                    Jadikan Repositori Private
+                  </label>
+                </div>
+
+                {ghError && <p className="text-xs text-destructive">{ghError}</p>}
+              </>
+            )}
+
+            <DialogFooter className="px-0 pt-3 pb-0 border-t">
+              <button
+                type="button"
+                onClick={() => setShowGithubModal(false)}
+                className="rounded-sm border border-border bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+              >
+                {ghSuccess ? 'Selesai' : 'Batal'}
+              </button>
+              {!ghSuccess && (
+                <Button type="submit" disabled={ghLoading || !ghToken.trim()}>
+                  {ghLoading ? 'Membuat Repositori…' : 'Push Sekarang'}
+                </Button>
+              )}
+            </DialogFooter>
+          </form>
+        </Dialog>
       </section>
 
       <section className="rounded-md border border-border bg-card p-4">

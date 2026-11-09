@@ -50,10 +50,24 @@ export function useProjectState(id: string | null) {
 
   const running = state?.project.status === 'running';
   useEffect(() => {
-    if (!running) return;
+    if (!running || !id) return;
+
+    if (typeof EventSource !== 'undefined') {
+      const es = new EventSource(`/api/projects/${id}/stream`);
+      es.addEventListener('update', () => refresh());
+      es.addEventListener('done', () => {
+        refresh();
+        es.close();
+      });
+      es.onerror = () => {
+        es.close();
+      };
+      return () => es.close();
+    }
+
     const t = setInterval(refresh, 1500);
     return () => clearInterval(t);
-  }, [running, refresh]);
+  }, [running, id, refresh]);
 
   return { state, error, loading, refresh };
 }

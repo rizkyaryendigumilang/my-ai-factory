@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Dialog, DialogHeader, DialogFooter } from '@/components/ui/dialog';
 import {
   ArrowRight,
   Bot,
@@ -150,50 +151,14 @@ export default function SoftwareHouseSchemeModal({
 }: SoftwareHouseSchemeModalProps) {
   const [activeTab, setActiveTab] = useState<'workflow' | 'divisions' | 'office' | 'handover'>('workflow');
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 animate-scrim-in"
-      onClick={onClose}
-    >
-      <div
-        className="relative flex max-h-[92vh] w-full max-w-5xl flex-col rounded-lg border border-white/10 bg-card/95 shadow-2xl backdrop-blur-xl animate-modal-in"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Modal Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-border px-5 py-3.5">
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-7 w-7 items-center justify-center rounded-sm bg-primary text-primary-foreground">
-              <Building2 className="h-4 w-4" />
-            </span>
-            <div>
-              <h2 className="text-xl font-semibold tracking-tight text-foreground">
-                Skema Kantor Software House AI
-              </h2>
-              <p className="text-xs text-muted-foreground">
-                Koreografi 6 divisi spesialis, ruang rapat serah-terima artefak, dan orkestrasi VPS mandiri.
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-sm p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
-            aria-label="Tutup jendela skema"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+    <Dialog isOpen={isOpen} onClose={onClose} maxWidth="max-w-5xl">
+      <DialogHeader
+        title="Skema Kantor Software House AI"
+        description="Koreografi 6 divisi spesialis, ruang rapat serah-terima artefak, dan orkestrasi VPS mandiri."
+        icon={<Building2 className="h-4 w-4" />}
+        onClose={onClose}
+      />
 
         {/* Tab Navigation */}
         <div className="flex shrink-0 items-center gap-1 border-b border-border bg-secondary/30 px-5 pt-2">
@@ -516,20 +481,19 @@ export default function SoftwareHouseSchemeModal({
           )}
         </div>
 
-        {/* Modal Footer */}
-        <div className="flex shrink-0 items-center justify-between border-t border-border bg-card px-5 py-3 text-xs">
-          <span className="text-muted-foreground">
-            Arsitektur Terintegrasi: Hermes VPS (:8444) · 9Router (:8443) · Native AI Factory
-          </span>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-sm bg-primary px-3.5 py-1.5 font-medium text-primary-foreground transition-[transform,background-color,border-color,color] duration-100 ease-out hover:bg-primary/90 active:scale-[0.97]"
-          >
-            Tutup Skema
-          </button>
-        </div>
-      </div>
-    </div>
+      {/* Modal Footer */}
+      <DialogFooter>
+        <span className="text-muted-foreground">
+          Arsitektur Terintegrasi: Hermes VPS (:8444) · 9Router (:8443) · Native AI Factory
+        </span>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-sm bg-primary px-3.5 py-1.5 font-medium text-primary-foreground transition-[transform,background-color,border-color,color] duration-100 ease-out hover:bg-primary/90 active:scale-[0.97]"
+        >
+          Tutup Skema
+        </button>
+      </DialogFooter>
+    </Dialog>
   );
 }
