@@ -4,27 +4,51 @@ import {
   FinishReason,
   type Part,
 } from '@google/generative-ai';
+import { getEffectiveGeminiKey, readRawSettings } from '@/lib/settings-store';
 
 /** Server-only Gemini wrapper. Never import this from a client component. */
 
-/** Primary model, then fallbacks tried when a model is unavailable (404) or overloaded (503). */
-const MODELS = [process.env.GEMINI_MODEL ?? 'gemini-1.5-flash', ...(process.env.GEMINI_FALLBACK_MODELS ?? 'gemini-2.0-flash,gemini-1.5-pro,gemini-flash-latest').split(',')]
-  .map((m) => m.trim())
-  .filter(Boolean);
+function getModels(): string[] {
+  try {
+    const s = readRawSettings().ai;
+    return [s.primaryModel, ...(s.fallbackModels || [])].map((m) => m.trim()).filter(Boolean);
+  } catch {
+    return [
+      process.env.GEMINI_MODEL ?? 'gemini-1.5-flash',
+      ...(process.env.GEMINI_FALLBACK_MODELS ?? 'gemini-2.0-flash,gemini-1.5-pro,gemini-flash-latest').split(','),
+    ]
+      .map((m) => m.trim())
+      .filter(Boolean);
+  }
+}
+
 const REQUEST_TIMEOUT_MS = 240_000;
 
 export function getApiKey(): string {
+  try {
+    const key = getEffectiveGeminiKey();
+    if (key) return key;
+  } catch {}
   return process.env.GEMINI_API_KEY ?? process.env.NEXT_PUBLIC_GEMINI_API_KEY ?? '';
 }
 
 /** True when AI calls can be made. When false the app runs in offline demo mode. */
 export function geminiAvailable(): boolean {
+  try {
+    const s = readRawSettings().ai;
+    if (s.mockMode) return false;
+  } catch {}
   return process.env.FACTORY_MOCK !== '1' && !!getApiKey();
 }
 
+let cachedKey = '';
 let client: GoogleGenerativeAI | null = null;
 function getClient() {
-  if (!client) client = new GoogleGenerativeAI(getApiKey());
+  const key = getApiKey();
+  if (!client || cachedKey !== key) {
+    cachedKey = key;
+    client = new GoogleGenerativeAI(key);
+  }
   return client;
 }
 
@@ -51,12 +75,13 @@ export async function generateWithMeta(
   const parts: (string | Part)[] = [prompt];
   for (const img of opts.images ?? []) parts.push({ inlineData: img });
 
+  const models = getModels();
   const errors = new Map<string, string>();
   const retired = new Set<string>();
   // Two rounds over the model list; the second round waits longer so short overload spikes pass.
   for (let round = 0; round < 2; round++) {
     if (round > 0) await sleep(10_000);
-    for (const modelName of MODELS) {
+    for (const modelName of models) {
       if (retired.has(modelName)) continue;
       const until = exhaustedUntil.get(modelName) ?? 0;
       if (until > Date.now()) {
@@ -105,9 +130,9 @@ export async function generateWithMeta(
       }
     }
     // Nothing left that could succeed on a second round.
-    if (MODELS.every((m) => retired.has(m) || (exhaustedUntil.get(m) ?? 0) > Date.now())) break;
+    if (models.every((m) => retired.has(m) || (exhaustedUntil.get(m) ?? 0) > Date.now())) break;
   }
-  const allQuota = MODELS.every((m) => retired.has(m) || (exhaustedUntil.get(m) ?? 0) > Date.now());
+  const allQuota = models.every((m) => retired.has(m) || (exhaustedUntil.get(m) ?? 0) > Date.now());
   throw new Error(
     allQuota
       ? `Kuota Gemini API habis untuk semua model (${[...errors.values()].join(' | ')}). Tunggu reset kuota, ganti GEMINI_API_KEY, atau aktifkan billing di Google AI Studio.`

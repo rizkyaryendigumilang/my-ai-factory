@@ -84,6 +84,16 @@ export function DialogHeader({
   );
 }
 
+export function DialogBody({
+  children,
+  className = '',
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return <div className={`flex-1 overflow-y-auto ${className}`}>{children}</div>;
+}
+
 export function DialogFooter({
   children,
   className = '',

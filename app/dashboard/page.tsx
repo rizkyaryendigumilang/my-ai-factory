@@ -3,7 +3,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Building2, Check, Copy, ExternalLink, Plus, SlidersHorizontal, Trash2 } from 'lucide-react';
+import { Building2, Check, Copy, ExternalLink, Plus, Settings, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { officeActivity } from '@/lib/activity';
 import { api, useProjectState } from '@/lib/use-project';
@@ -16,6 +16,7 @@ import VirtualOffice from './components/VirtualOffice';
 import ProjectSetup from './components/ProjectSetup';
 import VisualEditor from './components/VisualEditor';
 import DivisionAgentModal from '../office/components/DivisionAgentModal';
+import SettingsModal from '@/components/SettingsModal';
 
 const TABS = [
   ['setup', 'Spesifikasi & Setup'],
@@ -46,6 +47,7 @@ function Workspace() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState(false);
   const [showDivisionModal, setShowDivisionModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const { state, error, loading, refresh } = useProjectState(activeId);
 
   useEffect(() => {
@@ -166,6 +168,15 @@ function Workspace() {
           >
             <SlidersHorizontal className="h-3.5 w-3.5 text-primary" />
             <span>Pilih Agen VPS</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowSettingsModal(true)}
+            className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-background px-2.5 py-1 text-xs text-muted-foreground transition-[transform,background-color,border-color,color] duration-100 ease-out hover:border-primary hover:text-foreground active:scale-[0.97]"
+            title="Buka Pengaturan Pabrik & Integrasi Sistem (AI, VPS, GitHub)"
+          >
+            <Settings className="h-3.5 w-3.5 text-primary" />
+            <span className="hidden sm:inline">Pengaturan</span>
           </button>
           <a
             href="https://43.156.236.102:8444/?profile=default"
@@ -393,6 +404,11 @@ function Workspace() {
       <DivisionAgentModal
         isOpen={showDivisionModal}
         onClose={() => setShowDivisionModal(false)}
+      />
+
+      <SettingsModal
+        isOpen={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
       />
     </div>
   );

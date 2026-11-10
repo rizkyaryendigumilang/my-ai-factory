@@ -2,7 +2,7 @@ import 'server-only';
 import https from 'node:https';
 import http from 'node:http';
 import type { AgentRole } from '@/types';
-import type { DivisionAgentConfig } from './division-types.ts';
+import type { DivisionAgentConfig } from './division-types';
 
 const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 

@@ -3,9 +3,10 @@
 import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Building2, FolderGit2, Layers, Mic, MicOff, Terminal } from 'lucide-react';
+import { ArrowRight, Building2, FolderGit2, Layers, Mic, MicOff, Settings, Terminal } from 'lucide-react';
 import { api } from '@/lib/use-project';
 import { GEM_PERSONAS, GEM_PERSONA_IDS, type AgentRole, type GemPersona } from '@/types';
+import SettingsModal from '@/components/SettingsModal';
 
 const PRESETS: { label: string; persona: GemPersona; prompt: string }[] = [
   {
@@ -87,6 +88,7 @@ export default function LandingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [listening, setListening] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const recognitionRef = useRef<any>(null);
 
   const toggleListening = () => {
@@ -157,6 +159,15 @@ export default function LandingPage() {
             <span className="hidden text-xs text-muted-foreground sm:inline">/ Autonomous Software Foundry</span>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowSettingsModal(true)}
+              className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground transition-[transform,background-color,border-color,color] duration-100 ease-out hover:border-primary active:scale-[0.97]"
+              title="Buka Pengaturan Pabrik & Integrasi Sistem (AI, VPS, GitHub)"
+            >
+              <Settings className="h-3.5 w-3.5 text-primary" />
+              <span>Pengaturan</span>
+            </button>
             <Link
               href="/office"
               className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground transition-[transform,background-color,border-color,color] duration-100 ease-out hover:border-primary active:scale-[0.97]"
@@ -365,6 +376,11 @@ export default function LandingPage() {
       <footer className="border-t border-border py-5 text-center text-xs text-muted-foreground">
         My AI Factory ({new Date().getFullYear()}) — Autonomous Software Foundry
       </footer>
+
+      <SettingsModal
+        isOpen={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+      />
     </div>
   );
 }

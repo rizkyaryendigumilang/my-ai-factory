@@ -156,10 +156,12 @@ export default function ExportPanel({
                     type="password"
                     value={ghToken}
                     onChange={(e) => setGhToken(e.target.value)}
-                    placeholder="ghp_xxxxxxxxxxxx atau github_pat_xxxx"
-                    required
+                    placeholder="Kosongkan jika sudah diatur di Menu Pengaturan, atau masukkan token baru..."
                     className="w-full h-9 rounded-sm border border-input bg-background px-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary font-mono"
                   />
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Token otomatis diambil dari Menu Pengaturan jika tidak diisi di sini.
+                  </p>
                 </div>
 
                 <div>
@@ -201,7 +203,7 @@ export default function ExportPanel({
                 {ghSuccess ? 'Selesai' : 'Batal'}
               </button>
               {!ghSuccess && (
-                <Button type="submit" disabled={ghLoading || !ghToken.trim()}>
+                <Button type="submit" disabled={ghLoading}>
                   {ghLoading ? 'Membuat Repositori…' : 'Push Sekarang'}
                 </Button>
               )}

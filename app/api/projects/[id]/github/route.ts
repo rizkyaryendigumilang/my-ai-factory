@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import * as store from '@/lib/store';
 import { diagramToDrawio, isDiagramDoc } from '@/lib/drawio';
 import { docToMarkdown, slug } from '@/lib/export';
+import { getEffectiveGithubToken } from '@/lib/settings-store';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -18,7 +19,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   const body = await req.json().catch(() => ({}));
-  const token = (body.token || '').trim();
+  const token = (body.token || getEffectiveGithubToken() || '').trim();
   const repoName = (body.repoName || slug(state.project.title)).trim().replace(/[^a-zA-Z0-9._-]/g, '-');
   const isPrivate = Boolean(body.isPrivate ?? false);
   const description = body.description || `${state.project.title} - Dibuat otomatis oleh My AI Factory`;

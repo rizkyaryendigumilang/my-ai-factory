@@ -10,6 +10,7 @@ import {
   FolderGit2,
   Maximize2,
   Minimize2,
+  Settings,
   SlidersHorizontal,
   Terminal,
   Workflow,
@@ -19,6 +20,7 @@ import LiveNotebook from '../dashboard/components/LiveNotebook';
 import { CAST } from '../dashboard/components/VirtualOffice';
 import DivisionAgentModal from './components/DivisionAgentModal';
 import SoftwareHouseSchemeModal from './components/SoftwareHouseSchemeModal';
+import SettingsModal from '@/components/SettingsModal';
 import { officeActivity, ROLE_ORDER, type OfficeState } from '@/lib/activity';
 import { DEFAULT_DIVISIONS, type DivisionAgentConfig } from '@/lib/division-types';
 import { api, useProjectState } from '@/lib/use-project';
@@ -46,6 +48,7 @@ function SoftwareHouseOffice() {
   const [showDrawer, setShowDrawer] = useState(false);
   const [showDivisionModal, setShowDivisionModal] = useState(false);
   const [showSchemeModal, setShowSchemeModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [divisions, setDivisions] = useState<Record<AgentRole, DivisionAgentConfig>>(DEFAULT_DIVISIONS);
   const [iframeKey, setIframeKey] = useState(0);
@@ -167,6 +170,16 @@ function SoftwareHouseOffice() {
           >
             <SlidersHorizontal className="h-3.5 w-3.5 text-primary" />
             <span className="hidden sm:inline">Pilih Agen VPS Divisi</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowSettingsModal(true)}
+            className="inline-flex h-7 items-center gap-1.5 rounded-sm border border-border bg-card px-2.5 text-xs font-medium text-foreground transition-[transform,background-color,border-color,color] duration-100 ease-out hover:border-primary active:scale-[0.97]"
+            title="Buka Pengaturan Pabrik & Integrasi Sistem (AI, VPS, GitHub)"
+          >
+            <Settings className="h-3.5 w-3.5 text-primary" />
+            <span className="hidden sm:inline">Pengaturan</span>
           </button>
 
           <button
@@ -365,6 +378,12 @@ function SoftwareHouseOffice() {
       <SoftwareHouseSchemeModal
         isOpen={showSchemeModal}
         onClose={() => setShowSchemeModal(false)}
+      />
+
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
       />
     </div>
   );
