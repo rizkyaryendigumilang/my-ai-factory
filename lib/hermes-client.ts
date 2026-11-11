@@ -18,7 +18,7 @@ export interface RemoteDispatchResult {
 
 /**
  * Dispatches an agent task to the remote VPS endpoint configured for this division.
- * Supports Hermes VPS (port 8444 OpenAI-compatible/Hermes API) and 9Router (port 8443).
+ * Supports Hermes VPS (port 8444), 9Router (port 8443), and Ollama VM via Open WebUI / Muse Bridge.
  */
 export async function dispatchToRemoteAgent(
   role: AgentRole,
@@ -27,25 +27,43 @@ export async function dispatchToRemoteAgent(
   systemInstruction?: string
 ): Promise<RemoteDispatchResult> {
   const start = Date.now();
-  const apiKey =
-    config.source === 'router9-vps'
-      ? process.env.ROUTER_9_API_KEY || 'Apaya1234'
-      : process.env.HERMES_API_KEY || 'Apaya1234';
+  let apiKey = process.env.HERMES_API_KEY || 'Apaya1234';
+  if (config.source === 'router9-vps') {
+    apiKey = process.env.ROUTER_9_API_KEY || 'Apaya1234';
+  } else if (config.source === 'ollama-vm') {
+    apiKey = process.env.OPEN_WEBUI_API_KEY || 'sk-factory-kiky-ollama-2026';
+  }
 
   let targetUrl = config.endpointUrl;
   if (!targetUrl || targetUrl.trim() === '') {
-    targetUrl =
-      config.source === 'router9-vps'
-        ? process.env.ROUTER_9_URL || 'https://43.156.236.102:8443/v1/chat/completions'
-        : process.env.HERMES_VPS_URL || 'https://43.156.236.102:8444/v1/chat/completions';
+    if (config.source === 'router9-vps') {
+      targetUrl = process.env.ROUTER_9_URL || 'https://43.156.236.102:8443/v1/chat/completions';
+    } else if (config.source === 'ollama-vm') {
+      targetUrl = process.env.OPEN_WEBUI_URL || 'https://43.156.236.102/api/chat/completions';
+    } else {
+      targetUrl = process.env.HERMES_VPS_URL || 'https://43.156.236.102:8444/v1/chat/completions';
+    }
   }
 
   // Ensure OpenAI-compatible chat completions endpoint if root URL given
-  if (!targetUrl.includes('/v1/chat/completions') && !targetUrl.includes('?profile=')) {
+  if (
+    !targetUrl.includes('/v1/chat/completions') &&
+    !targetUrl.includes('/api/chat/completions') &&
+    !targetUrl.includes('?profile=')
+  ) {
     targetUrl = targetUrl.replace(/\/+$/, '') + '/v1/chat/completions';
   }
 
-  const model = config.modelOrProfile || (config.source === 'router9-vps' ? 'claude-3-5-sonnet' : 'hermes-coder');
+  const defaultModel =
+    config.source === 'ollama-vm'
+      ? role === 'agent-coder'
+        ? 'muse_bridge.ollama-qwen-coder'
+        : 'muse_bridge.ollama-deepseek'
+      : config.source === 'router9-vps'
+      ? 'claude-3-5-sonnet'
+      : 'hermes-coder';
+
+  const model = config.modelOrProfile || defaultModel;
 
   try {
     const controller = new AbortController();

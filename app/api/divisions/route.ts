@@ -33,7 +33,9 @@ export async function POST(req: Request) {
           if (div) {
             a.name = div.defaultName;
             const sourceTag =
-              div.source === 'hermes-vps'
+              div.source === 'ollama-vm'
+                ? 'OLLAMA-VM'
+                : div.source === 'hermes-vps'
                 ? 'HERMES-8444'
                 : div.source === 'router9-vps'
                 ? '9ROUTER-8443'

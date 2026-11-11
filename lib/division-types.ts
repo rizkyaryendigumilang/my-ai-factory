@@ -1,6 +1,6 @@
 import type { AgentRole } from '@/types';
 
-export type AgentSource = 'native' | 'hermes-vps' | 'router9-vps' | 'custom-vps';
+export type AgentSource = 'native' | 'hermes-vps' | 'router9-vps' | 'ollama-vm' | 'custom-vps';
 
 export interface DivisionAgentConfig {
   role: AgentRole;
@@ -15,7 +15,12 @@ export interface DivisionAgentConfig {
 
 export function isRemoteDivision(config?: DivisionAgentConfig): boolean {
   if (!config) return false;
-  return config.source === 'hermes-vps' || config.source === 'router9-vps' || config.source === 'custom-vps';
+  return (
+    config.source === 'hermes-vps' ||
+    config.source === 'router9-vps' ||
+    config.source === 'ollama-vm' ||
+    config.source === 'custom-vps'
+  );
 }
 
 export interface ProviderPreset {
@@ -60,6 +65,19 @@ export const PROVIDER_OPTIONS: Record<AgentSource, ProviderInfo> = {
       { id: 'gpt-4o', label: 'GPT-4o' },
       { id: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro' },
       { id: 'qwen-2.5-coder', label: 'Qwen 2.5 Coder' },
+    ],
+  },
+  'ollama-vm': {
+    id: 'ollama-vm',
+    label: 'Ollama VM (Lokal, Gratis)',
+    port: 'Bridge / WebUI',
+    defaultUrl: 'https://43.156.236.102/api/chat/completions',
+    description: 'Model Ollama VM lokal gratis (DeepSeek & Qwen Coder) via Muse Bridge / Open WebUI',
+    presets: [
+      { id: 'muse_bridge.ollama-deepseek', label: 'Ollama VM - DeepSeek (lokal, gratis)' },
+      { id: 'muse_bridge.ollama-qwen-coder', label: 'Ollama VM - Qwen Coder (lokal, gratis)' },
+      { id: 'ollama-deepseek', label: 'Direct Relay DeepSeek (ollama-deepseek)' },
+      { id: 'ollama-qwen-coder', label: 'Direct Relay Qwen Coder (ollama-qwen-coder)' },
     ],
   },
   native: {

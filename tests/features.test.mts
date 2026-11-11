@@ -12,4 +12,10 @@ test('isRemoteDivision identifies remote VPS configurations', () => {
     source: 'router9-vps' as const,
   };
   assert.equal(isRemoteDivision(customConfig), true);
+
+  const ollamaConfig = {
+    ...DEFAULT_DIVISIONS['agent-coder'],
+    source: 'ollama-vm' as const,
+  };
+  assert.equal(isRemoteDivision(ollamaConfig), true);
 });

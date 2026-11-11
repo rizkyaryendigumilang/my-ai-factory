@@ -81,11 +81,18 @@ export default function DivisionAgentModal({
     setConfigs((prev) => {
       const current = prev[role];
       const provider = PROVIDER_OPTIONS[source];
-      const firstPreset = provider.presets[0]?.id ?? 'default';
+      let firstPreset = provider.presets[0]?.id ?? 'default';
 
       let endpointUrl = provider.defaultUrl;
+      let agentName = `${provider.label.split(' ')[0]} ${current.defaultName}`;
+
       if (source === 'hermes-vps') {
         endpointUrl = `https://43.156.236.102:8444/?profile=${firstPreset}`;
+      } else if (source === 'ollama-vm') {
+        const isCoder = role === 'agent-coder';
+        firstPreset = isCoder ? 'muse_bridge.ollama-qwen-coder' : 'muse_bridge.ollama-deepseek';
+        endpointUrl = 'https://43.156.236.102/api/chat/completions';
+        agentName = isCoder ? 'Ollama Qwen Coder' : `Ollama DeepSeek ${current.defaultName}`;
       }
 
       return {
@@ -95,7 +102,7 @@ export default function DivisionAgentModal({
           source,
           modelOrProfile: firstPreset,
           endpointUrl,
-          agentName: `${provider.label.split(' ')[0]} ${current.defaultName}`,
+          agentName,
         },
       };
     });
@@ -183,6 +190,26 @@ export default function DivisionAgentModal({
     });
   };
 
+  const applyPresetAllOllama = () => {
+    setConfigs((prev) => {
+      const next = { ...prev };
+      for (const role of ROLE_LIST) {
+        const item = next[role];
+        const isCoder = role === 'agent-coder';
+        const model = isCoder ? 'muse_bridge.ollama-qwen-coder' : 'muse_bridge.ollama-deepseek';
+        const agentTitle = isCoder ? 'Ollama Qwen Coder' : `Ollama DeepSeek ${item.defaultName}`;
+        next[role] = {
+          ...item,
+          source: 'ollama-vm',
+          modelOrProfile: model,
+          endpointUrl: 'https://43.156.236.102/api/chat/completions',
+          agentName: agentTitle,
+        };
+      }
+      return next;
+    });
+  };
+
   const applyPresetDefault = () => {
     setConfigs(DEFAULT_DIVISIONS);
   };
@@ -243,7 +270,7 @@ export default function DivisionAgentModal({
     <Dialog isOpen={isOpen} onClose={onClose} maxWidth="max-w-4xl">
       <DialogHeader
         title="Pilih & Konfigurasi Agen VPS Divisi Kantor"
-        description="Tentukan penyedia AI dan profil model dari VPS (Hermes 8444 / 9Router 8443 / Native) untuk setiap divisi."
+        description="Tentukan penyedia AI dan profil model dari VPS (Hermes 8444 / 9Router 8443 / Ollama VM / Native) untuk setiap divisi."
         icon={<SlidersHorizontal className="h-4 w-4" />}
         onClose={onClose}
       />
@@ -258,6 +285,13 @@ export default function DivisionAgentModal({
               className="rounded-sm border border-border bg-card px-2 py-1 text-[11px] font-medium text-foreground transition-[transform,background-color,border-color,color] duration-100 ease-out hover:border-primary active:scale-[0.97]"
             >
               Rekomendasi Software House
+            </button>
+            <button
+              type="button"
+              onClick={applyPresetAllOllama}
+              className="rounded-sm border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 transition-[transform,background-color,border-color,color] duration-100 ease-out hover:border-emerald-500 active:scale-[0.97]"
+            >
+              Semua Ollama VM (Lokal Gratis)
             </button>
             <button
               type="button"
@@ -349,7 +383,9 @@ export default function DivisionAgentModal({
                         </div>
 
                         <span className="rounded-sm border border-border bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-                          {conf.source === 'hermes-vps'
+                          {conf.source === 'ollama-vm'
+                            ? 'OLLAMA :VM'
+                            : conf.source === 'hermes-vps'
                             ? 'HERMES :8444'
                             : conf.source === 'router9-vps'
                             ? '9ROUTER :8443'
@@ -375,6 +411,7 @@ export default function DivisionAgentModal({
                           }
                           className="h-8 w-full rounded-sm border border-input bg-background px-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                         >
+                          <option value="ollama-vm">Ollama VM (Lokal, Gratis - DeepSeek & Qwen)</option>
                           <option value="hermes-vps">Hermes VPS Agent (Port 8444)</option>
                           <option value="router9-vps">9Router AI Gateway (Port 8443)</option>
                           <option value="native">Native AI Factory (Internal)</option>
