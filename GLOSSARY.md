@@ -19,7 +19,9 @@ Kamus istilah domain resmi (Ubiquitous Language) untuk proyek **My AI Factory**:
 - **Anti AI-Slop:** Prinsip pembersihan elemen visual dan teks generik kecerdasan buatan (menghapus gradien nila-violet, badge spam, dan kalimat promosi artifisial).
 
 ### Infrastructure & Runtime
+- **Production App Access URL:** Endpoint publik resmi aplikasi di **`https://43.156.236.102/ai-factory`** (reverse proxy Caddy port 443 / internal PM2 :3005).
 - **Hermes VPS:** Agen otonom backend yang berjalan pada VPS remote port `:8444`.
 - **9Router VPS:** Proxy LLM kompatibel OpenAI/Claude pada VPS remote port `:8443`.
+- **Ollama VM:** Model LLM lokal gratis (`muse_bridge.ollama-deepseek` & `muse_bridge.ollama-qwen-coder`) via Muse Bridge di VPS.
 - **PocketBase SQLite:** Database backend ringan yang berjalan di port `:8090` dengan cadangan berkas JSON `.data/factory.json`.
 - **Secret Masking:** Teknik pengaburan token kredensial (`••••••••1234`) pada level presentasi agar tidak bocor ke browser atau riwayat git.

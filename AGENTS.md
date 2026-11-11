@@ -60,7 +60,7 @@ flowchart TD
     QA -->|"Submits Test Evidence (100% Pass)"| Gate5{"🛡️ Kiky Final Review"}
     
     Gate5 -->|"Approved for Release"| DevOps["🚀 @devops_sentry (Conversation #7)"]
-    DevOps -->|"Deploys to VPS / PM2"| Production["🌐 Live Production (:8450)"]
+    DevOps -->|"Deploys to VPS / PM2"| Production["🌐 Live Production (https://43.156.236.102/ai-factory)"]
 ```
 
 ---
