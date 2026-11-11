@@ -34,6 +34,13 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         lastLogCount = initial.logs.length;
         lastFileCount = initial.files.length;
         send('state', initial);
+
+        // shortcut: jika proyek sudah berstatus selesai/gagal, tidak perlu memutar interval polling disk
+        if (initial.project.status === 'completed' || initial.project.status === 'failed') {
+          send('done', { status: initial.project.status });
+          controller.close();
+          return;
+        }
       }
 
       const interval = setInterval(async () => {

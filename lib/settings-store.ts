@@ -160,7 +160,34 @@ export function readRawSettings(): FactorySettings {
 
     return merged;
   } catch (err) {
-    return { ...DEFAULT_FACTORY_SETTINGS, updatedAt: new Date().toISOString() };
+    // shortcut: jika berkas .data/settings.json korup, tetap pertahankan kunci dari .env.local
+    return {
+      ...DEFAULT_FACTORY_SETTINGS,
+      ai: {
+        ...DEFAULT_FACTORY_SETTINGS.ai,
+        geminiApiKey:
+          process.env.GEMINI_API_KEY ||
+          process.env.NEXT_PUBLIC_GEMINI_API_KEY ||
+          '',
+        primaryModel:
+          process.env.GEMINI_MODEL ||
+          DEFAULT_FACTORY_SETTINGS.ai.primaryModel,
+      },
+      vps: {
+        ...DEFAULT_FACTORY_SETTINGS.vps,
+        hermesEndpoint:
+          process.env.HERMES_AGENT_ENDPOINT ||
+          DEFAULT_FACTORY_SETTINGS.vps.hermesEndpoint,
+        pocketbaseUrl:
+          process.env.POCKETBASE_URL ||
+          DEFAULT_FACTORY_SETTINGS.vps.pocketbaseUrl,
+      },
+      github: {
+        ...DEFAULT_FACTORY_SETTINGS.github,
+        githubToken: process.env.GITHUB_TOKEN || '',
+      },
+      updatedAt: new Date().toISOString(),
+    };
   }
 }
 

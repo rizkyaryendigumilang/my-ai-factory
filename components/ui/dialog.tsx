@@ -31,15 +31,19 @@ export function Dialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 backdrop-blur-sm animate-scrim-in"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-3 backdrop-blur-sm animate-scrim-in"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
     >
       <div
-        className={`relative flex max-h-[92vh] w-full ${maxWidth} flex-col rounded-lg border border-white/10 bg-card/95 shadow-2xl backdrop-blur-xl animate-modal-in ${className}`}
+        className={`relative flex max-h-[90vh] sm:max-h-[92vh] w-full ${maxWidth} flex-col rounded-t-2xl sm:rounded-lg border-t sm:border border-white/10 bg-card/95 shadow-2xl backdrop-blur-xl animate-modal-in ${className}`}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Apple Mobile Sheet Pill Grab Handle */}
+        <div className="flex sm:hidden justify-center pt-2.5 pb-1 shrink-0" aria-hidden="true">
+          <div className="h-1.5 w-10 rounded-full bg-muted-foreground/30" />
+        </div>
         {children}
       </div>
     </div>

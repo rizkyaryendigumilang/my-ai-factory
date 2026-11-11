@@ -71,3 +71,16 @@ flowchart TD
 2. **Deterministic Quality & Zero Hallucination:** No placeholder code (`// TODO: implement later`), no mock shortcuts in production paths, no `any` type escapes.
 3. **Evidence Before Assertions:** QA must show actual terminal test outputs with zero failures before a feature can be marked ready.
 4. **Secret Isolation:** Zero hardcoded API keys, passwords, or raw VPS IP addresses in git-tracked code. Environment variables only via `.env.local` / GitHub Secrets.
+
+---
+
+## 5. Agent Skills & Engineering Setup
+
+### Issue Tracker
+GitHub Issues on `https://github.com/rizkyaryendigumilang/my-ai-factory` via `gh`. See `docs/agents/issue-tracker.md`.
+
+### Triage Labels
+Five canonical triage labels (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain Docs
+Single-context domain model in `GLOSSARY.md` and ADRs in `docs/adr/`. See `docs/agents/domain.md`.

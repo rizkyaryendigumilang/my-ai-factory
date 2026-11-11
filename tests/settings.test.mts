@@ -66,3 +66,10 @@ test('saveFactorySettings does not overwrite secrets when masked token is passed
   const updated = readRawSettings();
   assert.equal(updated.ai.primaryModel, 'gemini-2.0-flash');
 });
+
+test('readRawSettings safely falls back to env variables if settings are missing or empty', () => {
+  const current = readRawSettings();
+  assert.equal(typeof current.ai.primaryModel, 'string');
+  assert.equal(typeof current.vps.hermesEndpoint, 'string');
+  assert.equal(typeof current.github.targetBranch, 'string');
+});

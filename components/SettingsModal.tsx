@@ -231,11 +231,11 @@ export default function SettingsModal({ isOpen, onClose, onSaved }: SettingsModa
         <div className="flex h-[520px] flex-col md:flex-row">
           {/* Left Sidebar Navigation */}
           <aside className="w-full shrink-0 border-b border-border bg-muted/20 p-2 md:w-56 md:border-b-0 md:border-r">
-            <nav className="flex flex-row gap-1 md:flex-col" aria-label="Settings Categories">
+            <nav className="flex flex-row overflow-x-auto gap-1.5 md:flex-col" aria-label="Kategori Pengaturan">
               <button
                 type="button"
                 onClick={() => setActiveTab('ai')}
-                className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-xs font-medium transition-all duration-100 ease-out active:scale-[0.97] ${
+                className={`flex min-h-[44px] md:min-h-[38px] w-full items-center gap-2.5 rounded-md px-3 py-2 text-xs font-medium transition-all duration-100 ease-out active:scale-[0.97] shrink-0 md:shrink ${
                   activeTab === 'ai'
                     ? 'bg-primary text-primary-foreground shadow-sm'
                     : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
@@ -248,7 +248,7 @@ export default function SettingsModal({ isOpen, onClose, onSaved }: SettingsModa
               <button
                 type="button"
                 onClick={() => setActiveTab('vps')}
-                className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-xs font-medium transition-all duration-100 ease-out active:scale-[0.97] ${
+                className={`flex min-h-[44px] md:min-h-[38px] w-full items-center gap-2.5 rounded-md px-3 py-2 text-xs font-medium transition-all duration-100 ease-out active:scale-[0.97] shrink-0 md:shrink ${
                   activeTab === 'vps'
                     ? 'bg-primary text-primary-foreground shadow-sm'
                     : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
@@ -261,7 +261,7 @@ export default function SettingsModal({ isOpen, onClose, onSaved }: SettingsModa
               <button
                 type="button"
                 onClick={() => setActiveTab('github')}
-                className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-xs font-medium transition-all duration-100 ease-out active:scale-[0.97] ${
+                className={`flex min-h-[44px] md:min-h-[38px] w-full items-center gap-2.5 rounded-md px-3 py-2 text-xs font-medium transition-all duration-100 ease-out active:scale-[0.97] shrink-0 md:shrink ${
                   activeTab === 'github'
                     ? 'bg-primary text-primary-foreground shadow-sm'
                     : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
@@ -274,7 +274,7 @@ export default function SettingsModal({ isOpen, onClose, onSaved }: SettingsModa
               <button
                 type="button"
                 onClick={() => setActiveTab('orchestration')}
-                className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-xs font-medium transition-all duration-100 ease-out active:scale-[0.97] ${
+                className={`flex min-h-[44px] md:min-h-[38px] w-full items-center gap-2.5 rounded-md px-3 py-2 text-xs font-medium transition-all duration-100 ease-out active:scale-[0.97] shrink-0 md:shrink ${
                   activeTab === 'orchestration'
                     ? 'bg-primary text-primary-foreground shadow-sm'
                     : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
@@ -287,7 +287,7 @@ export default function SettingsModal({ isOpen, onClose, onSaved }: SettingsModa
               <button
                 type="button"
                 onClick={() => setActiveTab('appearance')}
-                className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-xs font-medium transition-all duration-100 ease-out active:scale-[0.97] ${
+                className={`flex min-h-[44px] md:min-h-[38px] w-full items-center gap-2.5 rounded-md px-3 py-2 text-xs font-medium transition-all duration-100 ease-out active:scale-[0.97] shrink-0 md:shrink ${
                   activeTab === 'appearance'
                     ? 'bg-primary text-primary-foreground shadow-sm'
                     : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
@@ -975,7 +975,7 @@ export default function SettingsModal({ isOpen, onClose, onSaved }: SettingsModa
           size="sm"
           onClick={handleResetDefaults}
           disabled={saving}
-          className="text-xs text-muted-foreground hover:text-foreground"
+          className="min-h-[44px] sm:min-h-[36px] text-xs text-muted-foreground hover:text-foreground"
         >
           <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
           Setel Ulang Bawaan
@@ -988,7 +988,7 @@ export default function SettingsModal({ isOpen, onClose, onSaved }: SettingsModa
             size="sm"
             onClick={onClose}
             disabled={saving}
-            className="text-xs"
+            className="min-h-[44px] sm:min-h-[36px] text-xs"
           >
             Tutup
           </Button>
@@ -997,7 +997,7 @@ export default function SettingsModal({ isOpen, onClose, onSaved }: SettingsModa
             size="sm"
             onClick={handleSave}
             disabled={saving || loading}
-            className="text-xs"
+            className="min-h-[44px] sm:min-h-[36px] text-xs"
           >
             {saving ? (
               <>
