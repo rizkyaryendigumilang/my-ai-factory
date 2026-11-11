@@ -18,7 +18,7 @@ import { allowedSkills, getSkill } from '@/lib/skills';
 import * as mock from '@/lib/mock';
 import * as store from '@/lib/store';
 import { getDivisionConfigs } from '@/lib/division-config';
-import { isRemoteDivision, dispatchToRemoteAgent } from '@/lib/hermes-client';
+import { isRemoteDivision, dispatchToRemoteAgent, extractJsonFromText } from '@/lib/hermes-client';
 import {
   GEM_PERSONAS,
   type AgentRole,
@@ -82,11 +82,30 @@ interface AgentProvider {
   ): Promise<number>;
 }
 
-const ask = <T>(role: AgentRole, project: Project, task: string, extra?: Parameters<typeof generateJson>[1]) =>
-  generateJson<T>(
-    `PROJECT: ${project.title}\nIDEA: ${project.raw_prompt}\nPERSONA (${project.gem_persona}): ${GEM_PERSONAS[project.gem_persona].directive}\n\nTASK:\n${task}`,
-    { systemInstruction: `${MASTER_PROMPT}\n\n${ROLE_PROMPTS[role]}`, ...extra }
-  );
+const ask = async <T>(
+  role: AgentRole,
+  project: Project,
+  task: string,
+  extra?: Parameters<typeof generateJson>[1]
+): Promise<T> => {
+  const divisions = getDivisionConfigs();
+  const divConfig = divisions[role];
+  const prompt = `PROJECT: ${project.title}\nIDEA: ${project.raw_prompt}\nPERSONA (${project.gem_persona}): ${GEM_PERSONAS[project.gem_persona].directive}\n\nTASK:\n${task}`;
+  const systemInstruction = `${MASTER_PROMPT}\n\n${ROLE_PROMPTS[role]}`;
+
+  if (divConfig && isRemoteDivision(divConfig)) {
+    try {
+      const res = await dispatchToRemoteAgent(role, divConfig, prompt, systemInstruction);
+      if (res.ok && res.text) {
+        return extractJsonFromText<T>(res.text);
+      }
+    } catch {
+      // Remote call failed, fallback to standard Gemini or synthetic
+    }
+  }
+
+  return generateJson<T>(prompt, { systemInstruction, ...extra });
+};
 
 const skillDirectives = (project: Project) =>
   allowedSkills(project.skills).map((id) => getSkill(id)!.directive);
@@ -185,6 +204,8 @@ Return JSON: {"colors":{"primary":"#hex","secondary":"#hex","background":"#hex",
     return { stack, qa };
   },
   async generateCode(project, artifacts, progress) {
+    const divisions = getDivisionConfigs();
+    const coderDiv = divisions['agent-coder'];
     const input: EccInput = {
       title: project.title,
       rawPrompt: project.raw_prompt,
@@ -196,17 +217,17 @@ Return JSON: {"colors":{"primary":"#hex","secondary":"#hex","background":"#hex",
       skillDirectives: skillDirectives(project),
     };
     const ctx = compressContext(input);
-    const manifest = await buildManifest(ctx);
+    const manifest = await buildManifest(ctx, 28, coderDiv);
     await progress(`Manifest: ${manifest.length} file. Konteks dikompres ke ${ctx.length} karakter.`);
 
     let done = 0;
     const failed: string[] = [];
     await pool(manifest, 3, async (entry: ManifestEntry) => {
       try {
-        let content = await generateFileComplete(entry, ctx, manifest);
+        let content = await generateFileComplete(entry, ctx, manifest, '', coderDiv);
         const problem = validateFile(entry.path, content);
         if (problem) {
-          content = await generateFileComplete(entry, ctx, manifest, `The previous attempt was invalid (${problem}). Be careful.`);
+          content = await generateFileComplete(entry, ctx, manifest, `The previous attempt was invalid (${problem}). Be careful.`, coderDiv);
           if (validateFile(entry.path, content)) throw new Error(`output tidak valid (${problem})`);
         }
         await store.saveFile(project.id, entry.path, content);
@@ -224,7 +245,13 @@ Return JSON: {"colors":{"primary":"#hex","secondary":"#hex","background":"#hex",
   },
 };
 
-const selectProvider = (): AgentProvider => (geminiAvailable() ? geminiAdapter : demoAdapter);
+function hasRemoteOrAiAvailable(): boolean {
+  if (geminiAvailable()) return true;
+  const divs = getDivisionConfigs();
+  return Object.values(divs).some((d) => isRemoteDivision(d));
+}
+
+const selectProvider = (): AgentProvider => (hasRemoteOrAiAvailable() ? geminiAdapter : demoAdapter);
 
 /* ------------------------------------------------------------------ */
 

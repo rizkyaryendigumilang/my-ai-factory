@@ -1,12 +1,17 @@
 import 'server-only';
 import { generateJson, generateWithMeta } from '@/lib/gemini';
 import { sanitizePath, stripFences, type ManifestEntry } from '@/lib/ecc-core';
+import type { DivisionAgentConfig } from '@/lib/division-types';
+import { isRemoteDivision, dispatchToRemoteAgent, extractJsonFromText } from '@/lib/hermes-client';
 
 export * from '@/lib/ecc-core';
 
-export async function buildManifest(ctx: string, maxFiles = 28): Promise<ManifestEntry[]> {
-  const raw = await generateJson<{ files: ManifestEntry[] }>(
-    `${ctx}
+export async function buildManifest(
+  ctx: string,
+  maxFiles = 28,
+  divConfig?: DivisionAgentConfig
+): Promise<ManifestEntry[]> {
+  const prompt = `${ctx}
 
 TASK: Plan the complete file directory of a runnable Next.js 15 (App Router) + TypeScript + Tailwind CSS + PocketBase project that implements the user stories above.
 Rules:
@@ -14,9 +19,24 @@ Rules:
 - Also include "preview.html": ONE self-contained HTML file (Tailwind via CDN, vanilla JS, no build step) that visually mimics the main screen of the app using the design tokens, for live preview.
 - Paths are relative, use forward slashes, no leading slash.
 - "purpose" is one sentence. "exports" lists the public symbols other files import from it.
-Return JSON: {"files":[{"path":"...","purpose":"...","exports":["..."]}]}`,
-    { temperature: 0.3, maxOutputTokens: 16384 }
-  );
+Return JSON: {"files":[{"path":"...","purpose":"...","exports":["..."]}]}`;
+
+  let raw: { files: ManifestEntry[] } = { files: [] };
+
+  if (divConfig && isRemoteDivision(divConfig)) {
+    try {
+      const res = await dispatchToRemoteAgent('agent-coder', divConfig, prompt, undefined, { timeoutMs: 45_000 });
+      if (res.ok && res.text) {
+        raw = extractJsonFromText<{ files: ManifestEntry[] }>(res.text);
+      } else {
+        raw = await generateJson<{ files: ManifestEntry[] }>(prompt, { temperature: 0.3, maxOutputTokens: 16384 });
+      }
+    } catch {
+      raw = await generateJson<{ files: ManifestEntry[] }>(prompt, { temperature: 0.3, maxOutputTokens: 16384 });
+    }
+  } else {
+    raw = await generateJson<{ files: ManifestEntry[] }>(prompt, { temperature: 0.3, maxOutputTokens: 16384 });
+  }
 
   const seen = new Set<string>();
   const out: ManifestEntry[] = [];
@@ -43,7 +63,8 @@ export async function generateFileComplete(
   entry: ManifestEntry,
   ctx: string,
   manifest: ManifestEntry[],
-  extraInstruction = ''
+  extraInstruction = '',
+  divConfig?: DivisionAgentConfig
 ): Promise<string> {
   const map = manifest.map((m) => `- ${m.path}${m.exports?.length ? ` (exports: ${m.exports.join(', ')})` : ''} — ${m.purpose}`).join('\n');
   const base = `${ctx}
@@ -53,6 +74,20 @@ ${map}
 
 TASK: Write the COMPLETE contents of "${entry.path}" — ${entry.purpose}
 Rules: production quality, no placeholders, no "TODO", no "rest of file", no truncation. Output ONLY the raw file content, no markdown fences, no commentary.${extraInstruction ? '\n' + extraInstruction : ''}`;
+
+  if (divConfig && isRemoteDivision(divConfig)) {
+    try {
+      const res = await dispatchToRemoteAgent('agent-coder', divConfig, base, undefined, {
+        timeoutMs: 90_000,
+        maxTokens: 8192,
+      });
+      if (res.ok && res.text && res.text.trim().length > 0) {
+        return stripFences(res.text);
+      }
+    } catch {
+      // Fallback to Gemini if remote call encounters issues
+    }
+  }
 
   let out = '';
   for (let i = 0; i <= MAX_CONTINUATIONS; i++) {
