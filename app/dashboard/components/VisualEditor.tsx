@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import {
   Check,
+  Clock,
   ExternalLink,
   Monitor,
   MousePointerClick,
@@ -19,7 +20,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/use-project';
-import type { ProjectFile } from '@/types';
+import type { Project, ProjectFile } from '@/types';
 import type { SandboxStatus } from '@/lib/vps-runner';
 
 interface Selection {
@@ -44,11 +45,13 @@ const WIDTHS = { desktop: '100%', tablet: '768px', mobile: '390px' } as const;
 
 export default function VisualEditor({
   projectId,
+  project,
   files,
   busy,
   onChanged,
 }: {
   projectId: string;
+  project?: Project;
   files: ProjectFile[];
   busy: boolean;
   onChanged: () => void;
@@ -142,6 +145,19 @@ export default function VisualEditor({
       setRunnerBusy(false);
     }
   };
+
+  if (project?.files_expired && files.length === 0) {
+    return (
+      <div className="flex h-full min-h-[300px] flex-col items-center justify-center p-8 text-center border rounded-md border-amber-500/30 bg-amber-500/5">
+        <Clock className="h-10 w-10 text-amber-500 mb-3" />
+        <h3 className="text-sm font-semibold text-foreground">File Temporary VPS Telah Dihapus</h3>
+        <p className="mt-1.5 max-w-md text-xs text-muted-foreground leading-relaxed">
+          File kode dan server sandbox di VPS otomatis dibersihkan karena batas 5 jam telah terlampaui tanpa diunduh.
+          Dokumen PRD &amp; arsitektur tetap aman. Anda dapat melakukan regenerasi kode dari tab Spesifikasi &amp; Setup.
+        </p>
+      </div>
+    );
+  }
 
   if (!html && files.length === 0) {
     return <p className="py-16 text-center text-sm text-muted-foreground">Belum ada preview. Jalankan perakitan dari tab Setup.</p>;

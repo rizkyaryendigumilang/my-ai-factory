@@ -55,6 +55,11 @@ export interface Project {
   status: ProjectStatus;
   created: string;
   updated: string;
+  files_ready_at?: string;
+  downloaded?: boolean;
+  downloaded_at?: string;
+  files_expired?: boolean;
+  files_purged_at?: string;
 }
 
 export type DocType =

@@ -3,6 +3,7 @@ import * as store from '@/lib/store';
 import { isRunning } from '@/lib/agent-framework';
 import { allowedSkills } from '@/lib/skills';
 import { updateProjectSchema } from '@/lib/validation';
+import { isProjectFilesExpired, purgeProjectGeneratedFiles } from '@/lib/cleanup';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -20,6 +21,13 @@ export async function GET(_req: Request, { params }: Ctx) {
     await store.addLog(id, { agent: 'system', action: 'run', status: 'failed', message: 'Proses terhenti (server restart). Jalankan ulang.' });
     state = (await store.getOwnedProjectState(id))!;
   }
+
+  // Automatic TTL check: if 5 hours passed without download, purge generated files immediately
+  if (isProjectFilesExpired(state.project) && !state.project.files_expired && state.files.length > 0) {
+    await purgeProjectGeneratedFiles(id);
+    state = (await store.getOwnedProjectState(id))!;
+  }
+
   return NextResponse.json(state);
 }
 

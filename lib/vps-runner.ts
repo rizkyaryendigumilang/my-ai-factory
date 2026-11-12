@@ -28,7 +28,7 @@ const g = globalThis as unknown as { __factorySandboxes?: Map<string, RunnerInst
 const runners = (g.__factorySandboxes ??= new Map<string, RunnerInstance>());
 const DEFAULT_SANDBOX_PORT = 3006;
 
-function getBaseSandboxDir(): string {
+export function getBaseSandboxDir(): string {
   if (process.platform === 'linux' && fs.existsSync('/srv/www')) {
     const dir = '/srv/www/sandboxes';
     if (!fs.existsSync(dir)) {
@@ -84,6 +84,34 @@ export async function syncProjectFilesToDisk(targetDir: string, files: ProjectFi
     }
   }
 
+  // Ensure basePath: '/sandbox-live' when hosted on VPS for Caddy subpath reverse proxy
+  const isVps = process.env.NEXT_PUBLIC_APP_URL?.includes('43.156.236.102') || process.platform === 'linux';
+  if (isVps) {
+    const basePath = '/sandbox-live';
+    const nextConfigPath = path.join(targetDir, 'next.config.mjs');
+    const nextConfigJsPath = path.join(targetDir, 'next.config.js');
+    const nextConfigTsPath = path.join(targetDir, 'next.config.ts');
+
+    if (!fs.existsSync(nextConfigPath) && !fs.existsSync(nextConfigJsPath) && !fs.existsSync(nextConfigTsPath)) {
+      fs.writeFileSync(
+        nextConfigPath,
+        `/** @type {import('next').NextConfig} */\nconst nextConfig = {\n  basePath: '${basePath}',\n  reactStrictMode: false,\n};\nexport default nextConfig;\n`,
+        'utf-8'
+      );
+    } else {
+      const activePath = fs.existsSync(nextConfigPath)
+        ? nextConfigPath
+        : fs.existsSync(nextConfigJsPath)
+        ? nextConfigJsPath
+        : nextConfigTsPath;
+      let content = fs.readFileSync(activePath, 'utf-8');
+      if (!content.includes('basePath')) {
+        content = content.replace(/(const\s+nextConfig\s*=\s*{)/, `$1\n  basePath: '${basePath}',`);
+        fs.writeFileSync(activePath, content, 'utf-8');
+      }
+    }
+  }
+
   return count;
 }
 
@@ -124,6 +152,21 @@ export async function stopSandboxRunner(projectId: string): Promise<void> {
     r.status = 'stopped';
     r.logs.push('[Runner] Proses dihentikan.');
   }
+}
+
+export async function removeProjectSandbox(projectId: string): Promise<boolean> {
+  await stopSandboxRunner(projectId);
+  runners.delete(projectId);
+  const dir = path.join(getBaseSandboxDir(), projectId);
+  if (fs.existsSync(dir)) {
+    try {
+      fs.rmSync(dir, { recursive: true, force: true });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  return false;
 }
 
 export async function startSandboxRunner(

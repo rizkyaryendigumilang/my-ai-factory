@@ -287,7 +287,12 @@ async function launchBackgroundRun(
     try {
       await work(provider);
       await store.createVersion(projectId, versionLabel);
-      await store.updateProject(projectId, { status: 'completed' });
+      await store.updateProject(projectId, {
+        status: 'completed',
+        files_ready_at: new Date().toISOString(),
+        downloaded: false,
+        files_expired: false,
+      });
     } catch {
       await store.updateProject(projectId, { status: 'failed' }).catch(() => {});
     }

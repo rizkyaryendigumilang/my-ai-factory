@@ -243,6 +243,11 @@ const toProject = (r: Row): Project => ({
   status: r.status || 'draft',
   created: r.created,
   updated: r.updated,
+  files_ready_at: r.files_ready_at,
+  downloaded: !!r.downloaded,
+  downloaded_at: r.downloaded_at,
+  files_expired: !!r.files_expired,
+  files_purged_at: r.files_purged_at,
 });
 
 export async function listProjects(userId?: string): Promise<Project[]> {
@@ -282,7 +287,22 @@ export async function createProject(
 
 export async function updateProject(
   id: string,
-  patch: Partial<Pick<Project, 'title' | 'raw_prompt' | 'gem_persona' | 'design_ref_url' | 'skills' | 'status'>>
+  patch: Partial<
+    Pick<
+      Project,
+      | 'title'
+      | 'raw_prompt'
+      | 'gem_persona'
+      | 'design_ref_url'
+      | 'skills'
+      | 'status'
+      | 'files_ready_at'
+      | 'downloaded'
+      | 'downloaded_at'
+      | 'files_expired'
+      | 'files_purged_at'
+    >
+  >
 ): Promise<Project> {
   return toProject(await (await driver()).update('projects', id, patch));
 }
@@ -429,7 +449,12 @@ export async function prepareProjectRun(projectId: string, opts: { resume?: bool
   const tasks: Promise<unknown>[] = [clearFiles(projectId)];
   if (!opts.codegenOnly && !opts.resume) tasks.push(clearLogs(projectId), clearDocuments(projectId));
   await Promise.all(tasks);
-  await updateProject(projectId, { status: 'running' });
+  await updateProject(projectId, {
+    status: 'running',
+    files_expired: false,
+    downloaded: false,
+    files_ready_at: undefined,
+  });
 }
 
 /* --------------------------------- state --------------------------------- */

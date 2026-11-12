@@ -118,7 +118,7 @@ function Workspace() {
     <div className="flex h-screen flex-col">
       <header className="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.08] bg-card/80 backdrop-blur-md backdrop-saturate-150 supports-[backdrop-filter]:bg-card/65 px-4 py-2.5">
         <div className="flex items-center gap-3">
-          <Link href="/" className="flex items-center gap-2 font-semibold">
+          <Link href="/ai-factory" className="flex items-center gap-2 font-semibold">
             <span className="flex h-7 w-7 items-center justify-center rounded-sm bg-primary text-xs font-bold text-primary-foreground">AF</span>
             My AI Factory
           </Link>
@@ -385,10 +385,19 @@ function Workspace() {
                     onChanged={() => { refresh(); setTab('monitor'); }}
                   />
                 )}
-                {tab === 'preview' && <VisualEditor projectId={state.project.id} files={state.files} busy={running} onChanged={refresh} />}
+                {tab === 'preview' && (
+                  <VisualEditor
+                    projectId={state.project.id}
+                    project={state.project}
+                    files={state.files}
+                    busy={running}
+                    onChanged={refresh}
+                  />
+                )}
                 {tab === 'export' && (
                   <ExportPanel
                     projectId={state.project.id}
+                    project={state.project}
                     versions={state.versions}
                     fileCount={state.files.length}
                     busy={running}

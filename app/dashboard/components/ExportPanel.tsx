@@ -1,21 +1,23 @@
 'use client';
 
 import { useState } from 'react';
-import { Archive, Check, Copy, Download, ExternalLink, FolderGit2, History, RotateCcw, Save } from 'lucide-react';
+import { Archive, Check, Clock, Copy, Download, ExternalLink, FolderGit2, History, RotateCcw, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogHeader, DialogFooter } from '@/components/ui/dialog';
 import { api } from '@/lib/use-project';
-import type { ProjectVersion } from '@/types';
+import type { Project, ProjectVersion } from '@/types';
 
 /** Step 8: final export (.zip) and Version History. */
 export default function ExportPanel({
   projectId,
+  project,
   versions,
   fileCount,
   busy,
   onChanged,
 }: {
   projectId: string;
+  project?: Project;
   versions: ProjectVersion[];
   fileCount: number;
   busy: boolean;
@@ -85,6 +87,32 @@ export default function ExportPanel({
           Arsip .zip berisi seluruh direktori kode Next.js 15 dan folder <code>docs/</code> (PRD markdown, diagram .drawio/.mmd, tech stack, QA plan).
         </p>
 
+        {project?.files_expired ? (
+          <div className="mb-4 rounded-md border border-amber-500/30 bg-amber-500/10 p-3.5 text-xs text-amber-600 dark:text-amber-400">
+            <div className="flex items-center gap-2 font-semibold">
+              <Clock className="h-4 w-4 shrink-0" />
+              <span>File Temporary VPS Telah Kedaluwarsa (&gt;5 Jam Belum Diunduh)</span>
+            </div>
+            <p className="mt-1.5 text-muted-foreground leading-relaxed">
+              Demi menjaga kebersihan dan kapasitas disk VPS, file kode hasil kompilasi otomatis dibersihkan jika tidak diunduh dalam 5 jam. Dokumen spesifikasi dan PRD tetap tersimpan aman. Silakan klik tab <strong>Spesifikasi &amp; Setup</strong> untuk melakukan regenerasi kode kapan saja.
+            </p>
+          </div>
+        ) : fileCount > 0 ? (
+          <div className="mb-4 rounded-md border border-sky-500/30 bg-sky-500/10 p-3 text-xs text-sky-800 dark:text-sky-300">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5 font-medium">
+                <Clock className="h-3.5 w-3.5 shrink-0" /> Penyimpanan Temporary VPS:
+              </span>
+              <span className="font-semibold">{project?.downloaded ? 'Sudah Diunduh' : 'Maks. 5 Jam'}</span>
+            </div>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              {project?.downloaded
+                ? `Berkas telah diunduh (${project.downloaded_at ? new Date(project.downloaded_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : 'Ya'}). File tetap aman.`
+                : 'File hasil kompilasi di VPS bersifat temporary dan akan otomatis dihapus jika tidak diunduh dalam 5 jam.'}
+            </p>
+          </div>
+        ) : null}
+
         <div className="mb-4 rounded-sm border border-border bg-background p-3 text-xs space-y-1.5">
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground">ID Proyek:</span>
@@ -100,6 +128,12 @@ export default function ExportPanel({
             <span className="text-muted-foreground">Jumlah file siap unduh:</span>
             <span className="font-semibold tabular-nums">{fileCount} file</span>
           </div>
+          {project?.downloaded && (
+            <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400">
+              <span className="flex items-center gap-1"><Check className="h-3 w-3" /> Status Unduhan:</span>
+              <span>Telah diunduh</span>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
