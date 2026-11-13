@@ -472,17 +472,22 @@ export async function restoreVersion(projectId: string, versionId: string) {
 }
 
 export async function prepareProjectRun(projectId: string, opts: { resume?: boolean; codegenOnly?: boolean } = {}) {
-  if ((await listFiles(projectId)).length) {
+  if (!opts.resume && (await listFiles(projectId)).length) {
     await createVersion(projectId, opts.codegenOnly ? 'Otomatis: sebelum regenerasi kode' : 'Otomatis: sebelum regenerasi');
   }
-  const tasks: Promise<unknown>[] = [clearFiles(projectId)];
-  if (!opts.codegenOnly && !opts.resume) tasks.push(clearLogs(projectId), clearDocuments(projectId));
+  const tasks: Promise<unknown>[] = [];
+  if (!opts.resume) {
+    tasks.push(clearFiles(projectId));
+  }
+  if (!opts.codegenOnly && !opts.resume) {
+    tasks.push(clearLogs(projectId), clearDocuments(projectId));
+  }
   await Promise.all(tasks);
   await updateProject(projectId, {
     status: 'running',
     files_expired: false,
     downloaded: false,
-    files_ready_at: undefined,
+    ...(opts.resume ? {} : { files_ready_at: undefined }),
   });
 }
 

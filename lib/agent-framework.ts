@@ -301,6 +301,11 @@ async function launchBackgroundRun(
     try {
       await store.updateProject(projectId, { status: 'running', active_phase: 'starting' }).catch(() => {});
       await work(provider);
+      // If the run paused at a human-in-the-loop approval gate, do not mark completed
+      const fresh = await store.getProject(projectId);
+      if (fresh?.active_phase === 'gate_paused' || fresh?.approval_gate) {
+        return;
+      }
       await store.createVersion(projectId, versionLabel);
       await store.updateProject(projectId, {
         status: 'completed',

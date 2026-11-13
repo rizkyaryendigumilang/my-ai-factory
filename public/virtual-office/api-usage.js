@@ -1,6 +1,5 @@
 // API Usage Monitor — shows real quota data from API/OAuth providers
 (function() {
-    const USAGE_URL = '/api-usage';
     const POLL_INTERVAL = 30000;
 
     const PROVIDER_COLORS = {
@@ -17,35 +16,83 @@
     };
     const DEFAULT_COLOR = '#aaa';
 
-    let _open = true;
+    let _open = false;
     let _pollTimer = null;
 
+    function safeTimeoutSignal(ms) {
+        try {
+            if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
+                return AbortSignal.timeout(ms);
+            }
+        } catch (e) {}
+        try {
+            const controller = new AbortController();
+            setTimeout(function() { controller.abort(); }, ms);
+            return controller.signal;
+        } catch (e) {
+            return undefined;
+        }
+    }
+
+    function getUsageUrl() {
+        return window.location.pathname.startsWith('/ai-factory') ? '/ai-factory/api-usage' : '/api-usage';
+    }
+
     window.toggleApiUsage = function() {
-        _open = !_open;
         const body = document.getElementById('api-usage-body');
         const arrow = document.getElementById('api-toggle-arrow');
-        body.style.display = _open ? 'block' : 'none';
-        arrow.textContent = _open ? '▼' : '▶';
-        if (_open && !_pollTimer) startPolling();
-        if (!_open && _pollTimer) stopPolling();
+        _open = body ? (body.style.display === 'none' || !body.style.display) : !_open;
+        if (body) body.style.display = _open ? 'block' : 'none';
+        if (arrow) arrow.textContent = _open ? '▼' : '▶';
+        if (_open) {
+            startPolling();
+        } else {
+            stopPolling();
+        }
     };
 
-    function startPolling() { fetchUsage(); _pollTimer = setInterval(fetchUsage, POLL_INTERVAL); }
-    function stopPolling() { if (_pollTimer) clearInterval(_pollTimer); _pollTimer = null; }
+    function startPolling() {
+        fetchUsage();
+        if (!_pollTimer) {
+            _pollTimer = setInterval(fetchUsage, POLL_INTERVAL);
+        }
+    }
+
+    function stopPolling() {
+        if (_pollTimer) clearInterval(_pollTimer);
+        _pollTimer = null;
+    }
+
+    window.startApiUsagePolling = startPolling;
+    window.stopApiUsagePolling = stopPolling;
 
     async function fetchUsage() {
         try {
-            const res = await fetch(USAGE_URL, { signal: AbortSignal.timeout(20000) });
+            const url = getUsageUrl();
+            const signal = safeTimeoutSignal(15000);
+            const opts = signal ? { signal: signal } : {};
+            const res = await fetch(url, opts);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
             const data = await res.json();
-            if (data.error && !data.providers?.length) { setDot(false); renderEmpty(data.error); return; }
+            if (data.error && !data.providers?.length) {
+                setDot(false);
+                renderEmpty(data.error);
+                return;
+            }
             setDot(true);
             render(data);
-        } catch(e) { setDot(false); renderEmpty('Connection error'); }
+        } catch(e) {
+            setDot(false);
+            renderEmpty('Connection error');
+        }
     }
 
     function setDot(ok) {
         const d = document.getElementById('api-status-dot');
-        if (d) { d.className = 'pc-dot ' + (ok ? 'online' : 'offline'); }
+        if (d) {
+            d.className = 'pc-dot ' + (ok ? 'online' : 'offline');
+            d.title = ok ? 'Active' : 'Offline / Error';
+        }
     }
 
     function renderEmpty(msg) {
@@ -58,7 +105,10 @@
         if (!c) return;
 
         const providers = data.providers || [];
-        if (!providers.length) { renderEmpty('No API providers found'); return; }
+        if (!providers.length) {
+            renderEmpty('No API providers found');
+            return;
+        }
 
         let html = '';
         for (const p of providers) {
@@ -68,7 +118,6 @@
             const hasUsage = p.usage != null && typeof p.usage === 'object';
             const hasError = !!p.error;
 
-            // Determine auth type
             let authLabel = p.plan || p.authType || p.type || '';
             if (authLabel === 'oauth') authLabel = 'OAuth';
             else if (authLabel === 'api_key') authLabel = 'API Key';
@@ -77,7 +126,6 @@
 
             html += `<div class="pc-metric-row">`;
 
-            // Header: provider name + plan/type badge
             html += `<div class="pc-metric-header">
                 <span class="pc-label" style="color:${color}">${displayName}</span>`;
             if (authLabel) {
@@ -85,7 +133,6 @@
             }
             html += `</div>`;
 
-            // Error display
             if (hasError) {
                 html += `<div class="api-warning error" style="font-size:8px;margin:2px 0">${p.error}</div>`;
             }
@@ -96,28 +143,24 @@
             if (hasUsage) {
                 const u = p.usage;
 
-                // Day/5h window
                 if (u.dailyPctLeft != null) {
                     const used = 100 - u.dailyPctLeft;
                     html += buildBar(u.dailyWindow || 'DAY', u.dailyPctLeft, used, color);
                     if (u.dailyTimeLeft) html += `<div class="pc-detail">${u.dailyTimeLeft} until reset</div>`;
                 }
 
-                // Week window
                 if (u.weeklyPctLeft != null) {
                     const used = 100 - u.weeklyPctLeft;
                     html += buildBar('WEEK', u.weeklyPctLeft, used, color);
                     if (u.weeklyTimeLeft) html += `<div class="pc-detail">${u.weeklyTimeLeft} until reset</div>`;
                 }
 
-                // Month window
                 if (u.monthlyPctLeft != null) {
                     const used = 100 - u.monthlyPctLeft;
                     html += buildBar('MONTH', u.monthlyPctLeft, used, color);
                     if (u.monthlyTimeLeft) html += `<div class="pc-detail">${u.monthlyTimeLeft} until reset</div>`;
                 }
 
-                // Any other windows (generic)
                 for (const key of Object.keys(u)) {
                     if (key.endsWith('PctLeft') && !['dailyPctLeft','weeklyPctLeft','monthlyPctLeft'].includes(key)) {
                         const label = key.replace('PctLeft','').toUpperCase();
@@ -129,7 +172,6 @@
                     }
                 }
 
-                // Exhaustion warnings
                 if (u.dailyPctLeft === 0) html += `<div class="api-warning exhausted">DAILY LIMIT REACHED</div>`;
                 if (u.weeklyPctLeft === 0) html += `<div class="api-warning exhausted">WEEKLY LIMIT REACHED</div>`;
             } else if (!hasError) {
@@ -142,7 +184,6 @@
             html += `</div>`;
         }
 
-        // Source + freshness footer
         const age = data.ageSeconds;
         let freshLabel = '';
         if (age != null) {
@@ -183,5 +224,6 @@
         return `linear-gradient(90deg, ${baseColor}, ${baseColor}cc)`;
     }
 
-    if (_open) startPolling();
+    // Pre-fetch in background so data is ready when opened
+    fetchUsage();
 })();

@@ -49,7 +49,7 @@
                             <div style="font-size:9px;color:#777;margin:4px 0 8px;line-height:1.5;">
                                 Configure every installed agent framework from its manifest: connections, models, permissions, discovery, and active-session streaming.
                             </div>
-                            <a href="/virtual-office/providers.html" style="text-decoration:none"><button class="mm-btn mm-btn-primary" type="button">Open Provider SDK Settings</button></a>
+                            <a href="/virtual-office/providers.html" target="_top" style="text-decoration:none"><button class="mm-btn mm-btn-primary" type="button" style="pointer-events:none;">Open Provider SDK Settings</button></a>
                         </div>
                         <!-- Connection -->
                         <div class="mm-section">
@@ -218,8 +218,8 @@
                 </div>
             </div>
             <div class="toolbar">
-                <a href="/dashboard" style="text-decoration:none"><button title="Kembali ke AI Factory Dashboard" style="border-color:#f59e0b;color:#f59e0b;font-weight:bold;">← Dashboard</button></a>
-                <a href="https://43.156.236.102:8444/?profile=default" target="_blank" rel="noopener noreferrer" style="text-decoration:none"><button title="Buka Hermes VPS Dashboard (Port 8444)" style="border-color:#06b6d4;color:#06b6d4;font-weight:bold;">Hermes VPS ↗</button></a>
+                <a href="/dashboard" target="_top" style="text-decoration:none"><button type="button" title="Kembali ke AI Factory Dashboard" style="border-color:#f59e0b;color:#f59e0b;font-weight:bold;pointer-events:none;">← Dashboard</button></a>
+                <a href="https://43.156.236.102:8444/?profile=default" target="_blank" rel="noopener noreferrer" style="text-decoration:none"><button type="button" title="Buka Hermes VPS Dashboard (Port 8444)" style="border-color:#06b6d4;color:#06b6d4;font-weight:bold;pointer-events:none;">Hermes VPS ↗</button></a>
                 <div class="toolbar-divider"></div>
                 <button id="btn-main-menu" title="Settings & Help" onclick="toggleMainMenu()">☰ Menu</button>
                 <button id="btn-edit-office" title="Edit office layout — resize canvas, place furniture" onclick="toggleEditMode()">✏️ Edit Office</button>
@@ -229,9 +229,9 @@
                 <div class="toolbar-divider"></div>
                 <button id="btn-expand-all" title="Expand all bubbles" onclick="expandAllBubbles()">💬 Expand All</button>
                 <button id="btn-minimize-all" title="Minimize all bubbles" onclick="minimizeAllBubbles()">💬 Minimize All</button>
-                <a href="/virtual-office/models.html" style="text-decoration:none"><button title="Model & Provider Settings">⚙️ Models</button></a>
-                <a href="/virtual-office/providers.html" style="text-decoration:none"><button title="Provider SDK Connections & Models">🧩 Providers</button></a>
-                <a href="/virtual-office/cron.html" style="text-decoration:none"><button title="Cron Job Manager">⏰ Cron</button></a>
+                <a href="/virtual-office/models.html" target="_top" style="text-decoration:none"><button type="button" title="Model & Provider Settings" style="pointer-events:none;">⚙️ Models</button></a>
+                <a href="/virtual-office/providers.html" target="_top" style="text-decoration:none"><button type="button" title="Provider SDK Connections & Models" style="pointer-events:none;">🧩 Providers</button></a>
+                <a href="/virtual-office/cron.html" target="_top" style="text-decoration:none"><button type="button" title="Cron Job Manager" style="pointer-events:none;">⏰ Cron</button></a>
                 <button title="Project Manager" onclick="openProjectsManager()">📋 Projects</button>
                 <button title="Reset canvas zoom" onclick="resetCamera()">🔍 Reset</button>
                 <button id="sms-toggle" title="SMS/Phone Panel">📞 SMS</button>
@@ -866,11 +866,13 @@
         if (pcBody) pcBody.style.display = 'block';
         var pcArrow = document.getElementById('pc-toggle-arrow');
         if (pcArrow) pcArrow.textContent = '▼';
+        if (typeof window.startPcPolling === 'function') window.startPcPolling();
         // API usage
         var apiBody = document.getElementById('api-usage-body');
         if (apiBody) apiBody.style.display = 'block';
         var apiArrow = document.getElementById('api-toggle-arrow');
         if (apiArrow) apiArrow.textContent = '▼';
+        if (typeof window.startApiUsagePolling === 'function') window.startApiUsagePolling();
     }
     function sidebarCollapseAll() {
         // Collapsible sections
@@ -881,11 +883,13 @@
         if (pcBody) pcBody.style.display = 'none';
         var pcArrow = document.getElementById('pc-toggle-arrow');
         if (pcArrow) pcArrow.textContent = '▶';
+        if (typeof window.stopPcPolling === 'function') window.stopPcPolling();
         // API usage
         var apiBody = document.getElementById('api-usage-body');
         if (apiBody) apiBody.style.display = 'none';
         var apiArrow = document.getElementById('api-toggle-arrow');
         if (apiArrow) apiArrow.textContent = '▶';
+        if (typeof window.stopApiUsagePolling === 'function') window.stopApiUsagePolling();
     }
     function toggleSidebar() {
         const sidebar = document.getElementById('sidebar');

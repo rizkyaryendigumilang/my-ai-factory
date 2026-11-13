@@ -301,8 +301,11 @@ export async function startSandboxRunner(
     });
 
     proc.on('exit', (code) => {
-      instance.status = 'stopped';
+      instance.status = code === 0 || code === null ? 'stopped' : 'failed';
       instance.logs.push(`[Runner] Proses berhenti (exit code: ${code})`);
+      if (code !== 0 && code !== null) {
+        instance.error = `Proses keluar dengan kode error ${code}`;
+      }
     });
 
     proc.on('error', (err) => {

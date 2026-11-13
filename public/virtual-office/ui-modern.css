@@ -185,10 +185,12 @@ textarea:focus,
   gap: 6px;
 }
 
+.toolbar a,
 .toolbar-primary > a {
   min-width: 0;
   display: block;
   text-decoration: none;
+  cursor: pointer;
 }
 
 .toolbar-primary > button,
@@ -203,6 +205,11 @@ textarea:focus,
   background: #121c2c;
   font-size: 11px;
   white-space: nowrap;
+}
+
+.toolbar a > button,
+.toolbar-primary > a > button {
+  pointer-events: none !important;
 }
 
 .toolbar-primary > button:hover,

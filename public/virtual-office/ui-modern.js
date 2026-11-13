@@ -183,6 +183,29 @@
 
         toolbar.querySelectorAll('.toolbar-divider').forEach(function (el) { el.remove(); });
         toolbar.appendChild(primary);
+
+        toolbar.querySelectorAll('a').forEach(function (link) {
+            var href = link.getAttribute('href');
+            if (!href) return;
+            var target = link.getAttribute('target');
+            link.style.cursor = 'pointer';
+            link.addEventListener('click', function (e) {
+                if (target === '_blank') {
+                    window.open(href, '_blank');
+                    e.preventDefault();
+                } else if (target === '_top') {
+                    if (window.top && window.top !== window) {
+                        window.top.location.href = href;
+                        e.preventDefault();
+                    }
+                }
+            });
+            var innerBtn = link.querySelector('button');
+            if (innerBtn) {
+                innerBtn.style.pointerEvents = 'none';
+            }
+        });
+
         syncThemeControls();
     }
 

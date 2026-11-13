@@ -1,8 +1,7 @@
-// PC Performance Monitor — polls metrics from Windows PC
+// PC Performance Monitor — polls metrics from Windows PC / VPS
 (function() {
-    const METRICS_URL = '/pc-metrics';
-    const POLL_INTERVAL = 1000;
-    const HISTORY_LEN = 60; // 60 data points (~3 min at 3s interval)
+    const POLL_INTERVAL = 1500;
+    const HISTORY_LEN = 60; // 60 data points
 
     // History arrays
     const history = {
@@ -11,23 +10,47 @@
         gpu: {} // gpu[index] = []
     };
 
-    let _open = true;
+    let _open = false;
     let _pollTimer = null;
     let _online = false;
 
+    function safeTimeoutSignal(ms) {
+        try {
+            if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
+                return AbortSignal.timeout(ms);
+            }
+        } catch (e) {}
+        try {
+            const controller = new AbortController();
+            setTimeout(function() { controller.abort(); }, ms);
+            return controller.signal;
+        } catch (e) {
+            return undefined;
+        }
+    }
+
+    function getMetricsUrl() {
+        return window.location.pathname.startsWith('/ai-factory') ? '/ai-factory/pc-metrics' : '/pc-metrics';
+    }
+
     window.togglePcMonitor = function() {
-        _open = !_open;
         const body = document.getElementById('pc-monitor-body');
         const arrow = document.getElementById('pc-toggle-arrow');
-        body.style.display = _open ? 'block' : 'none';
-        arrow.textContent = _open ? '▼' : '▶';
-        if (_open && !_pollTimer) startPolling();
-        if (!_open && _pollTimer) stopPolling();
+        _open = body ? (body.style.display === 'none' || !body.style.display) : !_open;
+        if (body) body.style.display = _open ? 'block' : 'none';
+        if (arrow) arrow.textContent = _open ? '▼' : '▶';
+        if (_open) {
+            startPolling();
+        } else {
+            stopPolling();
+        }
     };
 
     function startPolling() {
         fetchMetrics();
-        _pollTimer = setInterval(fetchMetrics, POLL_INTERVAL);
+        if (!_pollTimer) {
+            _pollTimer = setInterval(fetchMetrics, POLL_INTERVAL);
+        }
     }
 
     function stopPolling() {
@@ -35,9 +58,16 @@
         _pollTimer = null;
     }
 
+    window.startPcPolling = startPolling;
+    window.stopPcPolling = stopPolling;
+
     async function fetchMetrics() {
         try {
-            const res = await fetch(METRICS_URL, { signal: AbortSignal.timeout(4000) });
+            const url = getMetricsUrl();
+            const signal = safeTimeoutSignal(5000);
+            const opts = signal ? { signal: signal } : {};
+            const res = await fetch(url, opts);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
             const data = await res.json();
             _online = true;
             updateUI(data);
@@ -65,25 +95,36 @@
         // CPU
         const cpuPct = data.cpu?.percent ?? 0;
         pushHistory(history.cpu, cpuPct);
-        document.getElementById('pc-cpu-val').textContent = cpuPct.toFixed(0) + '%';
-        document.getElementById('pc-cpu-bar').style.width = cpuPct + '%';
+        const cpuVal = document.getElementById('pc-cpu-val');
+        if (cpuVal) cpuVal.textContent = cpuPct.toFixed(0) + '%';
+        const cpuBar = document.getElementById('pc-cpu-bar');
+        if (cpuBar) cpuBar.style.width = cpuPct + '%';
         setBarColor('pc-cpu-bar', cpuPct);
-        document.getElementById('pc-cpu-detail').textContent =
-            `${data.cpu?.threads || '?'} threads / ${Math.round(data.cpu?.freqMHz || 0)} MHz`;
+        const cpuDetail = document.getElementById('pc-cpu-detail');
+        if (cpuDetail) {
+            cpuDetail.textContent =
+                `${data.cpu?.threads || '?'} threads / ${Math.round(data.cpu?.freqMHz || 0)} MHz`;
+        }
         drawGraph('pc-cpu-graph', history.cpu, '#4fc3f7');
 
         // RAM
         const ramPct = data.memory?.percent ?? 0;
         pushHistory(history.ram, ramPct);
-        document.getElementById('pc-ram-val').textContent = ramPct.toFixed(0) + '%';
-        document.getElementById('pc-ram-bar').style.width = ramPct + '%';
+        const ramVal = document.getElementById('pc-ram-val');
+        if (ramVal) ramVal.textContent = ramPct.toFixed(0) + '%';
+        const ramBar = document.getElementById('pc-ram-bar');
+        if (ramBar) ramBar.style.width = ramPct + '%';
         setBarColor('pc-ram-bar', ramPct);
-        document.getElementById('pc-ram-detail').textContent =
-            `${data.memory?.usedGB || '?'} / ${data.memory?.totalGB || '?'} GB`;
+        const ramDetail = document.getElementById('pc-ram-detail');
+        if (ramDetail) {
+            ramDetail.textContent =
+                `${data.memory?.usedGB || '?'} / ${data.memory?.totalGB || '?'} GB`;
+        }
         drawGraph('pc-ram-graph', history.ram, '#ce93d8');
 
         // GPUs
         const container = document.getElementById('pc-gpus-container');
+        if (!container) return;
         const gpus = data.gpus || [];
         
         // Build GPU sections dynamically
@@ -112,18 +153,23 @@
             const util = gpu.utilization ?? 0;
             pushHistory(history.gpu[i], util);
             
-            document.getElementById(`pc-gpu${i}-val`).textContent = util.toFixed(0) + '%';
-            document.getElementById(`pc-gpu${i}-bar`).style.width = util + '%';
+            const valEl = document.getElementById(`pc-gpu${i}-val`);
+            if (valEl) valEl.textContent = util.toFixed(0) + '%';
+            const barEl = document.getElementById(`pc-gpu${i}-bar`);
+            if (barEl) barEl.style.width = util + '%';
             setBarColor(`pc-gpu${i}-bar`, util);
             
-            const vramPct = gpu.memoryTotalMB > 0 ? ((gpu.memoryUsedMB / gpu.memoryTotalMB) * 100).toFixed(0) : '?';
             const vramUsed = (gpu.memoryUsedMB / 1024).toFixed(1);
             const vramTotal = (gpu.memoryTotalMB / 1024).toFixed(1);
-            document.getElementById(`pc-gpu${i}-detail`).textContent =
-                `${gpu.name || 'GPU'} · ${vramUsed}/${vramTotal} GB`;
+            const detail1 = document.getElementById(`pc-gpu${i}-detail`);
+            if (detail1) {
+                detail1.textContent = `${gpu.name || 'GPU'} · ${vramUsed}/${vramTotal} GB`;
+            }
             const powerStr = gpu.powerW > 0 ? ` · ${gpu.powerW}W / ${gpu.powerLimitW}W` : '';
-            document.getElementById(`pc-gpu${i}-detail2`).textContent =
-                `${gpu.tempC || '?'}°C${powerStr}`;
+            const detail2 = document.getElementById(`pc-gpu${i}-detail2`);
+            if (detail2) {
+                detail2.textContent = `${gpu.tempC || '?'}°C${powerStr}`;
+            }
             
             const colors = ['#66bb6a', '#ffb74d'];
             drawGraph(`pc-gpu${i}-graph`, history.gpu[i], colors[i % colors.length]);
@@ -159,6 +205,7 @@
         const canvas = document.getElementById(canvasId);
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
+        if (!ctx) return;
         const w = canvas.width;
         const h = canvas.height;
         
@@ -210,13 +257,16 @@
         ctx.stroke();
     }
 
-    // Auto-start polling only if pcMetrics feature is enabled
+    // Always pre-fetch once on script load so data is ready instantly
+    fetchMetrics();
+
+    // Auto-start polling if pcMetrics feature is enabled in vo-config
     fetch('/vo-config').then(function(r) { return r.json(); }).then(function(cfg) {
         if (cfg && cfg.features && cfg.features.pcMetrics === true) {
-            if (_open) startPolling();
+            const body = document.getElementById('pc-monitor-body');
+            if (body && body.style.display !== 'none') {
+                startPolling();
+            }
         }
-        // If pcMetrics is not enabled, don't start polling — avoids 404 spam
-    }).catch(function() {
-        // If vo-config fetch fails, don't start polling to avoid 404s
-    });
+    }).catch(function() {});
 })();
