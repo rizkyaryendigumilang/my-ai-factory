@@ -13450,10 +13450,6 @@ canvas.addEventListener('mousemove', function(e) {
 
 // --- EDIT MODE TOGGLE (called from toolbar button) ---
 function toggleEditMode() {
-    if (window._voLicense && window._voLicense.demo) {
-        alert('Edit Office is a premium feature. Get a license key at myvirtualoffice.ai to unlock.');
-        return;
-    }
     editMode = !editMode;
     var btn = document.getElementById('btn-edit-office');
     var saveBtn = document.getElementById('btn-save-edits');
@@ -14019,10 +14015,6 @@ function mmFullReset() {
 }
 
 function toggleAgentPanel() {
-    if (window._voLicense && window._voLicense.demo) {
-        alert('Agent Editor is a premium feature. Get a license key at myvirtualoffice.ai to unlock.');
-        return;
-    }
     if (!_agentPanel) _buildAgentPanel();
     if (_agentPanel.classList.contains('visible')) {
         _agentPanel.classList.remove('visible');

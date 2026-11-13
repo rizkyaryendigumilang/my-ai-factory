@@ -102,9 +102,9 @@
         var minimizeBtn = document.getElementById('btn-minimize-all');
         var smsBtn = document.getElementById('sms-toggle');
         var browserBtn = document.getElementById('browser-toggle');
-        var modelsLink = toolbar.querySelector(':scope > a[href="/models.html"]');
-        var providersLink = toolbar.querySelector(':scope > a[href="/providers.html"]');
-        var cronLink = toolbar.querySelector(':scope > a[href="/cron.html"]');
+        var modelsLink = toolbar.querySelector(':scope > a[href*="models.html"]');
+        var providersLink = toolbar.querySelector(':scope > a[href*="providers.html"]');
+        var cronLink = toolbar.querySelector(':scope > a[href*="cron.html"]');
 
         if (settingsBtn) settingsBtn.textContent = '⚙️ Settings';
         if (editBtn) editBtn.textContent = '✏️ Edit Office';

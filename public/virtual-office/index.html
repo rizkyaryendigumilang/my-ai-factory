@@ -49,7 +49,7 @@
                             <div style="font-size:9px;color:#777;margin:4px 0 8px;line-height:1.5;">
                                 Configure every installed agent framework from its manifest: connections, models, permissions, discovery, and active-session streaming.
                             </div>
-                            <a href="/providers.html" style="text-decoration:none"><button class="mm-btn mm-btn-primary" type="button">Open Provider SDK Settings</button></a>
+                            <a href="/virtual-office/providers.html" style="text-decoration:none"><button class="mm-btn mm-btn-primary" type="button">Open Provider SDK Settings</button></a>
                         </div>
                         <!-- Connection -->
                         <div class="mm-section">
@@ -210,7 +210,7 @@
                                 <p><b>Move group:</b> After multi-selecting, click+hold any selected item to drag them all together.</p>
                                 <p><b>Shortcuts:</b> Del = delete selected, Esc = cancel, click empty = deselect all</p>
                             </div>
-                            <a href="/setup" class="mm-btn" style="text-align:center;display:block;text-decoration:none">🧙 Run Setup Wizard</a>
+                            <a href="/virtual-office/setup.html" class="mm-btn" style="text-align:center;display:block;text-decoration:none">🧙 Run Setup Wizard</a>
                         </div>
                         <!-- Save -->
                         <button class="mm-btn mm-btn-primary mm-save-all" onclick="mmSaveSettings()">💾 Save Settings</button>
@@ -229,9 +229,9 @@
                 <div class="toolbar-divider"></div>
                 <button id="btn-expand-all" title="Expand all bubbles" onclick="expandAllBubbles()">💬 Expand All</button>
                 <button id="btn-minimize-all" title="Minimize all bubbles" onclick="minimizeAllBubbles()">💬 Minimize All</button>
-                <a href="/models.html" style="text-decoration:none"><button title="Model & Provider Settings">⚙️ Models</button></a>
-                <a href="/providers.html" style="text-decoration:none"><button title="Provider SDK Connections & Models">🧩 Providers</button></a>
-                <a href="/cron.html" style="text-decoration:none"><button title="Cron Job Manager">⏰ Cron</button></a>
+                <a href="/virtual-office/models.html" style="text-decoration:none"><button title="Model & Provider Settings">⚙️ Models</button></a>
+                <a href="/virtual-office/providers.html" style="text-decoration:none"><button title="Provider SDK Connections & Models">🧩 Providers</button></a>
+                <a href="/virtual-office/cron.html" style="text-decoration:none"><button title="Cron Job Manager">⏰ Cron</button></a>
                 <button title="Project Manager" onclick="openProjectsManager()">📋 Projects</button>
                 <button title="Reset canvas zoom" onclick="resetCamera()">🔍 Reset</button>
                 <button id="sms-toggle" title="SMS/Phone Panel">📞 SMS</button>
@@ -1135,9 +1135,11 @@
     <script>
     // License check — demo watermark + feature gates
     (function() {
-        fetch('/api/license').then(function(r){return r.json();}).then(function(lic) {
-            window._voLicense = lic;
-            if (lic.demo) {
+        fetch('/api/license').then(function(r){return r.json();}).catch(function(){
+            return { valid: true, demo: false, plan: 'enterprise', maxAgents: 999 };
+        }).then(function(lic) {
+            window._voLicense = lic || { valid: true, demo: false, plan: 'enterprise', maxAgents: 999 };
+            if (lic && lic.demo) {
                 // Watermark banner
                 var banner = document.createElement('div');
                 banner.id = 'demo-banner';
