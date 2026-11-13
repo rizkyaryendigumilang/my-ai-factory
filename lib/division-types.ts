@@ -2,6 +2,17 @@ import type { AgentRole } from '@/types';
 
 export type AgentSource = 'native' | 'hermes-vps' | 'router9-vps' | 'ollama-vm' | 'custom-vps';
 
+export interface RemoteDispatchResult {
+  ok: boolean;
+  text?: string;
+  content?: string;
+  source: string;
+  latencyMs: number;
+  model?: string;
+  raw?: any;
+  error?: string;
+}
+
 export interface DivisionAgentConfig {
   role: AgentRole;
   divisionTitle: string;

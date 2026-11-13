@@ -2,7 +2,7 @@ import 'server-only';
 import fs from 'node:fs';
 import path from 'node:path';
 import PocketBase from 'pocketbase';
-import { canAccessProject, getSessionUserId } from '@/lib/session';
+import { canAccessProject, getSessionUserId } from './session';
 import type {
   AgentLog,
   DocType,
@@ -11,7 +11,7 @@ import type {
   ProjectFile,
   ProjectState,
   ProjectVersion,
-} from '@/types';
+} from '../types';
 
 /**
  * Persistence layer (deep module).
@@ -248,6 +248,10 @@ const toProject = (r: Row): Project => ({
   downloaded_at: r.downloaded_at,
   files_expired: !!r.files_expired,
   files_purged_at: r.files_purged_at,
+  active_phase: r.active_phase,
+  progress_done: r.progress_done,
+  progress_total: r.progress_total,
+  last_error: r.last_error,
 });
 
 export async function listProjects(userId?: string): Promise<Project[]> {
@@ -301,6 +305,10 @@ export async function updateProject(
       | 'downloaded_at'
       | 'files_expired'
       | 'files_purged_at'
+      | 'active_phase'
+      | 'progress_done'
+      | 'progress_total'
+      | 'last_error'
     >
   >
 ): Promise<Project> {
@@ -365,6 +373,23 @@ export async function listFiles(projectId: string): Promise<ProjectFile[]> {
 export async function saveFile(projectId: string, filePath: string, content: string) {
   const row = await upsert('project_files', `file:${projectId}:${filePath}`, { project_id: projectId, file_path: filePath }, { file_content: content });
   return toFile(row);
+}
+
+export async function saveFilesBatch(
+  projectId: string,
+  files: { path: string; content: string }[]
+): Promise<number> {
+  let count = 0;
+  for (const f of files) {
+    await upsert(
+      'project_files',
+      `file:${projectId}:${f.path}`,
+      { project_id: projectId, file_path: f.path },
+      { file_content: f.content }
+    );
+    count++;
+  }
+  return count;
 }
 
 export const clearFiles = (projectId: string) => clearByProject('project_files', projectId);

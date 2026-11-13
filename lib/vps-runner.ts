@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import { spawn, type ChildProcess } from 'node:child_process';
 import type { ProjectFile } from '@/types';
 
@@ -26,7 +27,41 @@ interface RunnerInstance {
 
 const g = globalThis as unknown as { __factorySandboxes?: Map<string, RunnerInstance> };
 const runners = (g.__factorySandboxes ??= new Map<string, RunnerInstance>());
-const DEFAULT_SANDBOX_PORT = 3006;
+
+export const DEFAULT_SANDBOX_PORT = 3006;
+export const SANDBOX_PORT_START = 3006;
+export const SANDBOX_PORT_END = 3015;
+
+/**
+ * Returns a URL for the given sandbox port based on hosting environment.
+ */
+export function getSandboxRunnerUrl(port: number): string {
+  const isVps = process.env.NEXT_PUBLIC_APP_URL?.includes('43.156.236.102') || process.platform === 'linux';
+  if (!isVps) return `http://localhost:${port}`;
+  return port === DEFAULT_SANDBOX_PORT
+    ? 'https://43.156.236.102/sandbox-live/'
+    : `https://43.156.236.102/sandbox/${port}/`;
+}
+
+/**
+ * Allocates the next available port in range 3006-3015 to allow multi-tenant live sandboxes.
+ */
+export function allocateSandboxPort(projectId: string): number {
+  const existing = runners.get(projectId);
+  if (existing && existing.port && existing.status !== 'stopped') return existing.port;
+
+  const usedPorts = new Set(
+    Array.from(runners.values())
+      .filter((r) => r.status === 'running' || r.status === 'starting')
+      .map((r) => r.port)
+  );
+
+  for (let p = SANDBOX_PORT_START; p <= SANDBOX_PORT_END; p++) {
+    if (!usedPorts.has(p)) return p;
+  }
+
+  return DEFAULT_SANDBOX_PORT;
+}
 
 export function getBaseSandboxDir(): string {
   if (process.platform === 'linux' && fs.existsSync('/srv/www')) {
@@ -58,7 +93,11 @@ export function getProjectSandboxDir(projectId: string): string {
 /**
  * Synchronizes file records from the database to disk, and links node_modules.
  */
-export async function syncProjectFilesToDisk(targetDir: string, files: ProjectFile[]): Promise<number> {
+export async function syncProjectFilesToDisk(
+  targetDir: string,
+  files: ProjectFile[],
+  port: number = DEFAULT_SANDBOX_PORT
+): Promise<number> {
   let count = 0;
   for (const f of files) {
     const fullPath = path.join(targetDir, f.file_path);
@@ -84,10 +123,10 @@ export async function syncProjectFilesToDisk(targetDir: string, files: ProjectFi
     }
   }
 
-  // Ensure basePath: '/sandbox-live' when hosted on VPS for Caddy subpath reverse proxy
+  // Ensure basePath is configured for Caddy subpath reverse proxy
   const isVps = process.env.NEXT_PUBLIC_APP_URL?.includes('43.156.236.102') || process.platform === 'linux';
   if (isVps) {
-    const basePath = '/sandbox-live';
+    const basePath = port === DEFAULT_SANDBOX_PORT ? '/sandbox-live' : `/sandbox/${port}`;
     const nextConfigPath = path.join(targetDir, 'next.config.mjs');
     const nextConfigJsPath = path.join(targetDir, 'next.config.js');
     const nextConfigTsPath = path.join(targetDir, 'next.config.ts');
@@ -117,9 +156,8 @@ export async function syncProjectFilesToDisk(targetDir: string, files: ProjectFi
 
 export function getSandboxRunnerStatus(projectId: string): SandboxStatus {
   const r = runners.get(projectId);
-  const port = r?.port ?? DEFAULT_SANDBOX_PORT;
-  const isVps = process.env.NEXT_PUBLIC_APP_URL?.includes('43.156.236.102') || process.platform === 'linux';
-  const url = isVps ? 'https://43.156.236.102/sandbox-live/' : `http://localhost:${port}`;
+  const port = r?.port ?? allocateSandboxPort(projectId);
+  const url = getSandboxRunnerUrl(port);
 
   if (!r) {
     return {
@@ -146,11 +184,20 @@ export function getSandboxRunnerStatus(projectId: string): SandboxStatus {
 export async function stopSandboxRunner(projectId: string): Promise<void> {
   const r = runners.get(projectId);
   if (r?.process) {
+    const pid = r.process.pid;
     try {
       r.process.kill('SIGTERM');
+      // Force kill after 3 seconds if not gracefully stopped
+      setTimeout(() => {
+        try {
+          if (pid && !r.process?.killed) {
+            process.kill(pid, 'SIGKILL');
+          }
+        } catch {}
+      }, 3000);
     } catch {}
     r.status = 'stopped';
-    r.logs.push('[Runner] Proses dihentikan.');
+    r.logs.push('[Runner] Proses dihentikan dengan aman.');
   }
 }
 
@@ -172,17 +219,29 @@ export async function removeProjectSandbox(projectId: string): Promise<boolean> 
 export async function startSandboxRunner(
   projectId: string,
   files: ProjectFile[],
-  port = DEFAULT_SANDBOX_PORT
+  requestedPort?: number
 ): Promise<SandboxStatus> {
-  // 1. Stop any currently active runner on this port
+  // Pre-spawn RAM Check: if VPS free RAM < 150MB, trigger eager cleanup
+  const freeMemMb = Math.round(os.freemem() / (1024 * 1024));
+  if (freeMemMb < 150) {
+    try {
+      const { runCleanupCycle } = await import('./cleanup');
+      await runCleanupCycle();
+    } catch {}
+  }
+
+  // Allocate port (dynamic multi-tenant)
+  const port = requestedPort ?? allocateSandboxPort(projectId);
+
+  // If another sandbox occupies this port, stop it first
   for (const [id, active] of runners.entries()) {
-    if (active.port === port && active.status !== 'stopped') {
+    if (id !== projectId && active.port === port && active.status !== 'stopped') {
       await stopSandboxRunner(id);
     }
   }
 
   const sandboxDir = getProjectSandboxDir(projectId);
-  await syncProjectFilesToDisk(sandboxDir, files);
+  await syncProjectFilesToDisk(sandboxDir, files, port);
 
   const instance: RunnerInstance = {
     projectId,
@@ -190,7 +249,8 @@ export async function startSandboxRunner(
     status: 'starting',
     logs: [
       `[Runner] Menyiapkan direktori sandbox: ${sandboxDir}`,
-      `[Runner] Menghubungkan modul bersama & mem-boot Next.js dev server pada port ${port}...`,
+      `[Runner] Alokasi port sandbox: ${port} (Batas V8 RAM: 256MB)`,
+      `[Runner] Mem-boot Next.js dev server pada port ${port}...`,
     ],
     startedAt: new Date().toISOString(),
   };
@@ -208,6 +268,7 @@ export async function startSandboxRunner(
         ...process.env,
         PORT: String(port),
         NODE_ENV: 'development',
+        NODE_OPTIONS: `${process.env.NODE_OPTIONS || ''} --max-old-space-size=256`.trim(),
       },
       shell: true,
     });

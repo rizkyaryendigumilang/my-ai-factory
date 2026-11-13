@@ -127,3 +127,4 @@ test('canAccessProject isolates user sessions while honoring legacy local projec
   assert.equal(canAccessProject({ user_id: 'local' }, 'user_456'), true);
   assert.equal(canAccessProject({}, 'user_789'), true);
 });
+

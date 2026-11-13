@@ -1,21 +1,18 @@
 import https from 'node:https';
 import type { AgentRole } from '@/types';
-import type { DivisionAgentConfig } from './division-types';
+import type { DivisionAgentConfig, RemoteDispatchResult } from './division-types';
 import { extractJsonFromText } from './json-extract';
+import {
+  isCircuitOpen,
+  recordEndpointSuccess,
+  recordEndpointFailure,
+} from './circuit-breaker';
 
 const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 
 export { isRemoteDivision } from './division-types';
 export { extractJsonFromText } from './json-extract';
-
-export interface RemoteDispatchResult {
-  ok: boolean;
-  text?: string;
-  source: string;
-  error?: string;
-  latencyMs: number;
-}
-
+export * from './circuit-breaker';
 
 /**
  * Dispatches an agent task to the remote VPS endpoint configured for this division.
@@ -54,6 +51,16 @@ export async function dispatchToRemoteAgent(
     !targetUrl.includes('?profile=')
   ) {
     targetUrl = targetUrl.replace(/\/+$/, '') + '/v1/chat/completions';
+  }
+
+  // Fast-fail if circuit breaker is OPEN
+  if (isCircuitOpen(targetUrl)) {
+    return {
+      ok: false,
+      source: config.source,
+      error: `Circuit breaker OPEN: Endpoint ${targetUrl} sedang istirahat sejenak setelah kegagalan berturut-turut. Beralih ke fallback Gemini.`,
+      latencyMs: 0,
+    };
   }
 
   const defaultModel =
@@ -102,7 +109,9 @@ export async function dispatchToRemoteAgent(
     const elapsed = Date.now() - start;
 
     if (!res.ok) {
+      recordEndpointFailure(targetUrl);
       const errText = await res.text().catch(() => '');
+
       // If Ollama VM returns error, try automatic fallback to 9Router if available
       if (config.source === 'ollama-vm' && targetUrl !== 'https://43.156.236.102:8443/v1/chat/completions') {
         const fallbackConfig: DivisionAgentConfig = {
@@ -133,6 +142,8 @@ export async function dispatchToRemoteAgent(
       data?.output ??
       (typeof data === 'string' ? data : JSON.stringify(data));
 
+    recordEndpointSuccess(targetUrl);
+
     return {
       ok: true,
       text: content,
@@ -140,6 +151,8 @@ export async function dispatchToRemoteAgent(
       latencyMs: elapsed,
     };
   } catch (err: any) {
+    recordEndpointFailure(targetUrl);
+
     // If Ollama VM times out, fallback to 9Router
     if (config.source === 'ollama-vm') {
       try {
@@ -150,7 +163,7 @@ export async function dispatchToRemoteAgent(
           endpointUrl: 'https://43.156.236.102:8443/v1/chat/completions',
         };
         const fbRes = await dispatchToRemoteAgent(role, fallbackConfig, taskPrompt, systemInstruction, {
-          timeoutMs: 30_000,
+          timeoutMs: 20_000,
           maxTokens,
         });
         if (fbRes.ok) return fbRes;
@@ -160,7 +173,7 @@ export async function dispatchToRemoteAgent(
     return {
       ok: false,
       source: config.source,
-      error: err?.message || 'Connection failed',
+      error: `Remote dispatch error: ${err?.message || err}`,
       latencyMs: Date.now() - start,
     };
   }

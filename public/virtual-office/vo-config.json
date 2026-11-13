@@ -45,14 +45,14 @@
     "location": null
   },
   "features": {
-    "pcMetrics": false,
+    "pcMetrics": true,
     "smsPanel": false,
     "browserPanel": false,
     "whisper": false,
     "apiUsage": true
   },
   "pcMetrics": {
-    "url": null
+    "url": "/pc-metrics"
   },
   "whisper": {
     "url": "http://127.0.0.1:8087"

@@ -232,6 +232,13 @@ Return JSON: {"colors":{"primary":"#hex","secondary":"#hex","background":"#hex",
         }
         await store.saveFile(project.id, entry.path, content);
         done++;
+        await store
+          .updateProject(project.id, {
+            progress_done: done,
+            progress_total: manifest.length,
+            active_phase: 'agent-coder',
+          })
+          .catch(() => {});
         await progress(`Menulis ${entry.path} (${done}/${manifest.length})`);
       } catch (e: any) {
         failed.push(entry.path);
@@ -259,6 +266,12 @@ const g = globalThis as unknown as { __factoryRuns?: Set<string> };
 const runs = (g.__factoryRuns ??= new Set<string>());
 export const isRunning = (id: string) => runs.has(id);
 
+export async function isProjectRunning(id: string): Promise<boolean> {
+  if (runs.has(id)) return true;
+  const p = await store.getProject(id).catch(() => null);
+  return p?.status === 'running';
+}
+
 export async function extractDesignTokens(
   project: Pick<Project, 'title' | 'raw_prompt' | 'gem_persona'>,
   refs: DesignReference[]
@@ -285,16 +298,24 @@ async function launchBackgroundRun(
   const provider = selectProvider();
   void (async () => {
     try {
+      await store.updateProject(projectId, { status: 'running', active_phase: 'starting' }).catch(() => {});
       await work(provider);
       await store.createVersion(projectId, versionLabel);
       await store.updateProject(projectId, {
         status: 'completed',
+        active_phase: 'completed',
         files_ready_at: new Date().toISOString(),
         downloaded: false,
         files_expired: false,
       });
-    } catch {
-      await store.updateProject(projectId, { status: 'failed' }).catch(() => {});
+    } catch (err: any) {
+      await store
+        .updateProject(projectId, {
+          status: 'failed',
+          active_phase: 'failed',
+          last_error: err?.message || 'Run failed',
+        })
+        .catch(() => {});
     }
   })().finally(() => runs.delete(projectId));
   return 'started';
@@ -362,6 +383,7 @@ async function runPipeline(projectId: string, resume: boolean, provider: AgentPr
     } else {
       await log(role, 'running', startMsg);
     }
+    await store.updateProject(projectId, { active_phase: role, status: 'running' }).catch(() => {});
 
     try {
       const { value, summary } = await fn();

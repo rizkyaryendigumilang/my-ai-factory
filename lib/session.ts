@@ -1,6 +1,6 @@
 import 'server-only';
 import { cookies, headers } from 'next/headers';
-import type { Project } from '@/types';
+import type { Project } from '../types';
 
 const COOKIE_NAME = 'factory_uid';
 
@@ -44,4 +44,4 @@ export async function getSessionUserId(opts: { createIfMissing?: boolean } = {})
   return 'local';
 }
 
-export { canAccessProject } from '@/lib/ecc-core';
+export { canAccessProject } from './ecc-core';

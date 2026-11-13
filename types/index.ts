@@ -60,6 +60,10 @@ export interface Project {
   downloaded_at?: string;
   files_expired?: boolean;
   files_purged_at?: string;
+  active_phase?: string;
+  progress_done?: number;
+  progress_total?: number;
+  last_error?: string;
 }
 
 export type DocType =
