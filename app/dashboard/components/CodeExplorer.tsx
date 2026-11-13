@@ -2,8 +2,9 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Check, ChevronDown, ChevronRight, Copy, File as FileIcon, RefreshCw, Search } from 'lucide-react';
+import { Check, ChevronDown, ChevronRight, Copy, File as FileIcon, RefreshCw, Search, Wand2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogHeader, DialogFooter } from '@/components/ui/dialog';
 import { api } from '@/lib/use-project';
 import type { FileTreeNode, ProjectFile } from '@/types';
 
@@ -81,6 +82,43 @@ export default function CodeExplorer({
   const [confirmRegen, setConfirmRegen] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [showRefactorModal, setShowRefactorModal] = useState(false);
+  const [refactorPrompt, setRefactorPrompt] = useState('');
+  const [refactoring, setRefactoring] = useState(false);
+  const [refactorMsg, setRefactorMsg] = useState('');
+
+  const handleRefactor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!file || !refactorPrompt.trim()) return;
+    setRefactoring(true);
+    setError('');
+    setRefactorMsg('');
+    try {
+      const res = await api<{ ok: boolean; path: string; content: string }>(
+        `/api/projects/${projectId}/refactor-file`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            filePath: file.file_path,
+            instruction: refactorPrompt.trim(),
+          }),
+        }
+      );
+      if (res.ok) {
+        setRefactorMsg(`Berkas ${res.path} berhasil dikoreksi!`);
+        setRefactorPrompt('');
+        setTimeout(() => {
+          setShowRefactorModal(false);
+          setRefactorMsg('');
+        }, 1500);
+        onChanged();
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Gagal merefaktor berkas');
+    } finally {
+      setRefactoring(false);
+    }
+  };
 
   const filteredFiles = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -153,21 +191,80 @@ export default function CodeExplorer({
             <span className="truncate font-mono">{file?.file_path}</span>
             {lineCount > 0 && <span className="tabular-nums text-slate-400">({lineCount} baris)</span>}
           </div>
-          <button
-            className="inline-flex items-center gap-1 text-slate-400 hover:text-white"
-            onClick={() => {
-              if (!file) return;
-              navigator.clipboard.writeText(file.file_content);
-              setCopied(true);
-              setTimeout(() => setCopied(false), 1500);
-            }}
-          >
-            {copied ? <Check className="h-3.5 w-3.5 text-primary" /> : <Copy className="h-3.5 w-3.5" />}
-            {copied ? 'Tersalin' : 'Salin'}
-          </button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-6 px-2 text-[11px] gap-1 text-slate-300 border-slate-700 hover:text-white"
+              onClick={() => {
+                setError('');
+                setRefactorMsg('');
+                setShowRefactorModal(true);
+              }}
+              title="Koreksi berkas ini dengan AI Coder"
+            >
+              <Wand2 className="h-3 w-3 text-primary" /> Koreksi AI
+            </Button>
+            <button
+              className="inline-flex items-center gap-1 text-slate-400 hover:text-white"
+              onClick={() => {
+                if (!file) return;
+                navigator.clipboard.writeText(file.file_content);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 1500);
+              }}
+            >
+              {copied ? <Check className="h-3.5 w-3.5 text-primary" /> : <Copy className="h-3.5 w-3.5" />}
+              {copied ? 'Tersalin' : 'Salin'}
+            </button>
+          </div>
         </div>
         <pre className="min-h-0 flex-1 overflow-auto p-3 font-mono text-xs leading-5"><code>{file?.file_content}</code></pre>
       </div>
+
+      <Dialog isOpen={showRefactorModal} onClose={() => setShowRefactorModal(false)} maxWidth="max-w-lg">
+        <DialogHeader
+          title="Koreksi Berkas dengan AI Coder"
+          description={`Target berkas: ${file?.file_path}`}
+          onClose={() => setShowRefactorModal(false)}
+        />
+        <form onSubmit={handleRefactor} className="space-y-3 p-5">
+          <div>
+            <label className="block text-xs font-medium mb-1">Instruksi Perbaikan / Fitur:</label>
+            <textarea
+              value={refactorPrompt}
+              onChange={(e) => setRefactorPrompt(e.target.value)}
+              placeholder="Contoh: Tambahkan penanganan error try-catch dan validasi Zod untuk request body..."
+              rows={4}
+              required
+              className="w-full rounded-md border border-input bg-background p-2.5 text-xs focus:ring-1 focus:ring-primary"
+            />
+          </div>
+          {error && <p className="text-xs text-destructive">{error}</p>}
+          {refactorMsg && <p className="text-xs text-emerald-500 font-medium">{refactorMsg}</p>}
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowRefactorModal(false)}
+              disabled={refactoring}
+            >
+              Batal
+            </Button>
+            <Button
+              type="submit"
+              size="sm"
+              className="bg-primary text-primary-foreground"
+              disabled={refactoring || !refactorPrompt.trim()}
+            >
+              <Wand2 className="h-3.5 w-3.5 mr-1" />
+              {refactoring ? 'Memproses Koreksi…' : 'Terapkan Perbaikan'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </Dialog>
     </div>
   );
 }

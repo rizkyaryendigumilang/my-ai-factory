@@ -40,3 +40,40 @@ export function getRemainingTtlMs(project: Project): number {
   const remaining = FILE_TTL_MS - elapsed;
   return Math.max(0, remaining);
 }
+
+export interface TtlRemainingFormat {
+  label: string;
+  urgency: 'normal' | 'warning' | 'danger' | 'expired' | 'downloaded';
+  hours: number;
+  minutes: number;
+}
+
+/**
+ * Formats remaining TTL into human readable string and urgency level.
+ */
+export function formatTtlRemaining(remainingMs: number): TtlRemainingFormat {
+  if (remainingMs === Infinity) {
+    return { label: 'Tersimpan (Aman)', urgency: 'downloaded', hours: 0, minutes: 0 };
+  }
+  if (remainingMs <= 0) {
+    return { label: 'Kedaluwarsa', urgency: 'expired', hours: 0, minutes: 0 };
+  }
+
+  const totalMinutes = Math.floor(remainingMs / (60 * 1000));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  let urgency: TtlRemainingFormat['urgency'] = 'normal';
+  if (remainingMs < 30 * 60 * 1000) {
+    urgency = 'danger';
+  } else if (remainingMs < 2 * 60 * 60 * 1000) {
+    urgency = 'warning';
+  }
+
+  const label =
+    hours > 0
+      ? `${String(hours).padStart(2, '0')}j ${String(minutes).padStart(2, '0')}m tersisa`
+      : `${minutes}m tersisa`;
+
+  return { label, urgency, hours, minutes };
+}

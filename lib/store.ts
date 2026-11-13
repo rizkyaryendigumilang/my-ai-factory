@@ -252,6 +252,8 @@ const toProject = (r: Row): Project => ({
   progress_done: r.progress_done,
   progress_total: r.progress_total,
   last_error: r.last_error,
+  execution_mode: r.execution_mode || 'auto',
+  approval_gate: r.approval_gate,
 });
 
 export async function listProjects(userId?: string): Promise<Project[]> {
@@ -309,6 +311,8 @@ export async function updateProject(
       | 'progress_done'
       | 'progress_total'
       | 'last_error'
+      | 'execution_mode'
+      | 'approval_gate'
     >
   >
 ): Promise<Project> {

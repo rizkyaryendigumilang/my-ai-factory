@@ -276,16 +276,28 @@ export async function startSandboxRunner(
     instance.process = proc;
 
     proc.stdout?.on('data', (d) => {
-      const text = d.toString();
-      instance.logs.push(text);
+      const text = d.toString('utf8');
+      text.split('\n').forEach((line: string) => {
+        const clean = line.trimEnd();
+        if (clean) {
+          instance.logs.push(clean);
+          if (instance.logs.length > 100) instance.logs.shift();
+        }
+      });
       if (text.includes('Ready in') || text.includes('ready') || text.includes('Local:')) {
         instance.status = 'running';
       }
     });
 
     proc.stderr?.on('data', (d) => {
-      const text = d.toString();
-      instance.logs.push(`[stderr] ${text}`);
+      const text = d.toString('utf8');
+      text.split('\n').forEach((line: string) => {
+        const clean = line.trimEnd();
+        if (clean) {
+          instance.logs.push(`[stderr] ${clean}`);
+          if (instance.logs.length > 100) instance.logs.shift();
+        }
+      });
     });
 
     proc.on('exit', (code) => {

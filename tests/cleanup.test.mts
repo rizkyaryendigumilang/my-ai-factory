@@ -8,6 +8,7 @@ import {
   FILE_TTL_MS,
   isProjectFilesExpired,
   getRemainingTtlMs,
+  formatTtlRemaining,
 } from '../lib/cleanup-core.ts';
 
 test('isProjectFilesExpired correctly evaluates 5-hour TTL', () => {
@@ -64,3 +65,22 @@ test('isProjectFilesExpired correctly evaluates 5-hour TTL', () => {
 
   assert.equal(isProjectFilesExpired(explicitlyExpiredProject), true);
 });
+
+test('formatTtlRemaining returns appropriate urgency and formatted text', () => {
+  assert.equal(formatTtlRemaining(Infinity).urgency, 'downloaded');
+  assert.equal(formatTtlRemaining(0).urgency, 'expired');
+  assert.equal(formatTtlRemaining(-5000).urgency, 'expired');
+
+  const danger = formatTtlRemaining(15 * 60 * 1000); // 15 mins
+  assert.equal(danger.urgency, 'danger');
+  assert.equal(danger.label, '15m tersisa');
+
+  const warning = formatTtlRemaining(90 * 60 * 1000); // 1 hour 30 mins
+  assert.equal(warning.urgency, 'warning');
+  assert.equal(warning.label, '01j 30m tersisa');
+
+  const normal = formatTtlRemaining(4 * 3600 * 1000 + 45 * 60 * 1000); // 4 hours 45 mins
+  assert.equal(normal.urgency, 'normal');
+  assert.equal(normal.label, '04j 45m tersisa');
+});
+

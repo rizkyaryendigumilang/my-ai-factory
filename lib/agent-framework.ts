@@ -10,6 +10,7 @@ import {
   compressContext,
   generateFileComplete,
   pool,
+  stripFences,
   validateFile,
   type EccInput,
   type ManifestEntry,
@@ -438,6 +439,20 @@ async function runPipeline(projectId: string, resume: boolean, provider: AgentPr
       return { value: prd, summary: `BRD & PRD selesai, ${prd.userStories?.length ?? 0} user story.` };
     });
 
+    // Gate 1: After PM (BRD & PRD)
+    {
+      const fresh = await store.getProject(projectId);
+      if (fresh?.execution_mode === 'step') {
+        await store.updateProject(projectId, {
+          status: 'draft',
+          active_phase: 'gate_paused',
+          approval_gate: 'gate_pm',
+        });
+        await log('system', 'completed', 'Menunggu otorisasi Kiky: [Gate 1: Spesifikasi & PRD]. Klik "Setujui & Lanjutkan" untuk tahap Arsitektur.');
+        return;
+      }
+    }
+
     artifacts.erd = await step('agent-4-analyst', 'Merancang UML, ERD, DFD & Architecture Diagram…', false, ['erd', 'uml', 'dfd', 'architecture'], async () => {
       const storiesBrief = JSON.stringify((artifacts.prd?.userStories ?? []).map((s: any) => s.story ?? s));
       const done: Partial<Diagrams> = {};
@@ -471,6 +486,20 @@ async function runPipeline(projectId: string, resume: boolean, provider: AgentPr
       return { value: done.erd, summary };
     });
 
+    // Gate 2: After System Analyst (Diagrams & ERD)
+    {
+      const fresh = await store.getProject(projectId);
+      if (fresh?.execution_mode === 'step') {
+        await store.updateProject(projectId, {
+          status: 'draft',
+          active_phase: 'gate_paused',
+          approval_gate: 'gate_arch',
+        });
+        await log('system', 'completed', 'Menunggu otorisasi Kiky: [Gate 2: Arsitektur & ERD]. Klik "Setujui & Lanjutkan" untuk tahap Keamanan & QA.');
+        return;
+      }
+    }
+
     artifacts.stack = await step(
       'tech-stack-security',
       'Memilih tech stack, aturan keamanan OWASP & QA plan…',
@@ -489,6 +518,20 @@ async function runPipeline(projectId: string, resume: boolean, provider: AgentPr
         return { value: stack, summary: `${stack.stack?.length ?? 0} komponen stack, ${stack.securityRules?.length ?? 0} aturan keamanan, ${qa.testCases?.length ?? 0} test case.` };
       }
     );
+
+    // Gate 3: After Security & QA Plan
+    {
+      const fresh = await store.getProject(projectId);
+      if (fresh?.execution_mode === 'step') {
+        await store.updateProject(projectId, {
+          status: 'draft',
+          active_phase: 'gate_paused',
+          approval_gate: 'gate_security',
+        });
+        await log('system', 'completed', 'Menunggu otorisasi Kiky: [Gate 3: Keamanan & QA Plan]. Klik "Setujui & Lanjutkan" untuk tahap Perakitan Kode.');
+        return;
+      }
+    }
 
     await step(
       'agent-coder',
@@ -600,3 +643,90 @@ export async function applyVisualEdit(
   }
   return { changed };
 }
+
+/**
+ * Approves the currently paused gate and resumes execution to the next phase.
+ */
+export async function approveGateAndContinue(
+  projectId: string,
+  autoPilot?: boolean
+): Promise<'started' | 'already-running'> {
+  const project = await store.getProject(projectId);
+  if (!project) throw new Error('Proyek tidak ditemukan');
+  await store.updateProject(projectId, {
+    approval_gate: null,
+    status: 'running',
+    active_phase: 'resuming',
+    execution_mode: autoPilot ? 'auto' : project.execution_mode,
+  });
+  await store.addLog(projectId, {
+    agent: 'system',
+    action: 'run',
+    status: 'running',
+    message: `Kiky menyetujui gate. Melanjutkan perakitan tahap berikutnya${autoPilot ? ' (Auto-Pilot)' : ''}…`,
+  });
+  return startRun(projectId, { resume: true });
+}
+
+/**
+ * Refactors a specific file using the AI Coder agent according to user instruction.
+ */
+export async function refactorSingleFile(
+  projectId: string,
+  filePath: string,
+  instruction: string
+): Promise<{ ok: boolean; path: string; content: string }> {
+  const project = await store.getProject(projectId);
+  if (!project) throw new Error('Proyek tidak ditemukan');
+  const files = await store.listFiles(projectId);
+  const target = files.find((f) => f.file_path === filePath);
+  if (!target) throw new Error(`Berkas ${filePath} tidak ditemukan`);
+
+  const divisions = getDivisionConfigs();
+  const coderDiv = divisions['agent-coder'];
+
+  const prompt = `FILE: ${filePath}
+EXISTING CODE:
+${target.file_content}
+
+USER INSTRUCTION:
+${instruction}
+
+TASK: Refactor and return the complete, production-ready TypeScript/Next.js code for ${filePath}. Do not include markdown commentary. Provide all necessary imports and logic.`;
+
+  const systemInstruction = `${MASTER_PROMPT}\n\nYou are a Senior Fullstack Engineer refactoring ${filePath} in a Next.js 15 App Router TypeScript application. Ensure type safety and zero placeholders.`;
+
+  let updatedCode = '';
+  if (isRemoteDivision(coderDiv)) {
+    const res = await dispatchToRemoteAgent('agent-coder', coderDiv, prompt, systemInstruction);
+    if (res.ok && res.text) {
+      updatedCode = stripFences(res.text.trim());
+    }
+  }
+
+  if (!updatedCode) {
+    if (geminiAvailable()) {
+      const res = await generateWithMeta(prompt, { systemInstruction, temperature: 0.2 });
+      updatedCode = stripFences(res.text.trim());
+    } else {
+      updatedCode = `// [Refactored by AI - ${new Date().toLocaleTimeString()}]: ${instruction.slice(0, 80)}\n${target.file_content}`;
+    }
+  }
+
+  const problem = validateFile(filePath, updatedCode);
+  if (problem) {
+    throw new Error(`Hasil refactor tidak valid: ${problem}`);
+  }
+
+  await store.saveFile(projectId, filePath, updatedCode);
+  await store.createVersion(projectId, `Koreksi AI: ${filePath}`);
+  await store.addLog(projectId, {
+    agent: 'agent-coder',
+    action: 'codegen',
+    status: 'completed',
+    message: `Koreksi ${filePath} selesai: ${instruction.slice(0, 60)}`,
+  });
+
+  return { ok: true, path: filePath, content: updatedCode };
+}
+

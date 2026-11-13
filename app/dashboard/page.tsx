@@ -3,7 +3,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Building2, Check, Copy, ExternalLink, Plus, Settings, SlidersHorizontal, Trash2 } from 'lucide-react';
+import { Building2, Check, Copy, ExternalLink, Plus, Settings, ShieldCheck, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { officeActivity } from '@/lib/activity';
 import { api, useProjectState } from '@/lib/use-project';
@@ -48,7 +48,26 @@ function Workspace() {
   const [copiedId, setCopiedId] = useState(false);
   const [showDivisionModal, setShowDivisionModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [stepLoading, setStepLoading] = useState(false);
   const { state, error, loading, refresh } = useProjectState(activeId);
+
+  const handleApproveGate = async (autoPilot = false) => {
+    if (!activeId) return;
+    setStepLoading(true);
+    setActionError(null);
+    try {
+      await api(`/api/projects/${activeId}/step`, {
+        method: 'POST',
+        body: JSON.stringify({ autoPilot }),
+      });
+      refresh();
+      setTab('monitor');
+    } catch (e: any) {
+      setActionError(e.message || 'Gagal menyetujui gate');
+    } finally {
+      setStepLoading(false);
+    }
+  };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -316,7 +335,54 @@ function Workspace() {
                 </nav>
               </div>
 
-              <div className="min-h-0 flex-1 overflow-y-auto p-4">
+              <div className="min-h-0 flex-1 overflow-y-auto p-4 space-y-4">
+                {state.project.approval_gate && (
+                  <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3.5 text-xs text-amber-900 dark:text-amber-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-start gap-2.5">
+                      <div className="mt-0.5 rounded bg-amber-500/20 p-1 text-amber-600 dark:text-amber-400">
+                        <ShieldCheck className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <div className="font-semibold text-sm">
+                          🛡️ Otorisasi Kiky Diperlukan: {
+                            state.project.approval_gate === 'gate_pm'
+                              ? 'Gate 1 — Spesifikasi & User Stories Selesai'
+                              : state.project.approval_gate === 'gate_arch'
+                              ? 'Gate 2 — Desain Arsitektur & ERD Selesai'
+                              : 'Gate 3 — Keamanan OWASP & QA Plan Selesai'
+                          }
+                        </div>
+                        <p className="mt-0.5 text-muted-foreground text-[11px]">
+                          {state.project.approval_gate === 'gate_pm'
+                            ? 'Dokumen PRD & BRD siap. Anda dapat memeriksa tab "Dokumen & Diagram" sebelum mengizinkan System Analyst merancang ERD.'
+                            : state.project.approval_gate === 'gate_arch'
+                            ? 'Diagram UML, ERD, dan DFD siap. Setujui untuk melanjutkan ke audit keamanan OWASP dan QA.'
+                            : 'Aturan keamanan dan skenario pengujian siap. Otorisasikan Fullstack Coder untuk merakit berkas kode.'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        disabled={stepLoading}
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs h-8"
+                        onClick={() => handleApproveGate(false)}
+                      >
+                        <Check className="h-3.5 w-3.5 mr-1" />
+                        Setujui &amp; Lanjut Tahap Berikutnya
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={stepLoading}
+                        className="text-xs h-8 border-amber-500/40 hover:bg-amber-500/10"
+                        onClick={() => handleApproveGate(true)}
+                      >
+                        Setujui &amp; Auto-Pilot Penuh
+                      </Button>
+                    </div>
+                  </div>
+                )}
                 {tab === 'setup' && (
                   <ProjectSetup
                     project={state.project}

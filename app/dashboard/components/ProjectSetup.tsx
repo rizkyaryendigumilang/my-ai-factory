@@ -49,6 +49,7 @@ export default function ProjectSetup({
   const [persona, setPersona] = useState<GemPersona>(project.gem_persona);
   const [refs, setRefs] = useState<DesignReference[]>(project.design_ref_url);
   const [skills, setSkills] = useState<string[]>(project.skills);
+  const [executionMode, setExecutionMode] = useState<'auto' | 'step'>(project.execution_mode || 'auto');
   const [catalog, setCatalog] = useState<SkillInfo[]>([]);
   const [plan, setPlan] = useState('free');
   const [linkInput, setLinkInput] = useState('');
@@ -63,6 +64,7 @@ export default function ProjectSetup({
     setPersona(project.gem_persona);
     setRefs(project.design_ref_url);
     setSkills(project.skills);
+    setExecutionMode(project.execution_mode || 'auto');
     setTokens(null);
     setError('');
   }, [project.id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -123,7 +125,13 @@ export default function ProjectSetup({
       if (!resume) {
         await api(`/api/projects/${project.id}`, {
           method: 'PATCH',
-          body: JSON.stringify({ raw_prompt: prompt, gem_persona: persona, design_ref_url: refs, skills }),
+          body: JSON.stringify({
+            raw_prompt: prompt,
+            gem_persona: persona,
+            design_ref_url: refs,
+            skills,
+            execution_mode: executionMode,
+          }),
         });
         onSaved();
       }
@@ -277,6 +285,52 @@ export default function ProjectSetup({
             Paket Free aktif. Setel <code>FACTORY_PLAN=pro</code> di <code>.env.local</code> untuk membuka modul Tier Pro.
           </p>
         )}
+      </Section>
+
+      <Section n={4} title="Kendali Alur Kerja & Otorisasi Kiky (AGENTS.md)">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label
+            className={`flex cursor-pointer gap-2.5 rounded-sm border p-3.5 transition-colors ${
+              executionMode === 'auto' ? 'border-primary bg-primary/10' : 'border-border hover:bg-secondary'
+            }`}
+          >
+            <input
+              type="radio"
+              name="executionMode"
+              value="auto"
+              checked={executionMode === 'auto'}
+              onChange={() => setExecutionMode('auto')}
+              className="mt-1"
+            />
+            <div>
+              <span className="block font-semibold text-sm">⚡ Auto-Pilot Penuh</span>
+              <span className="block text-xs text-muted-foreground mt-0.5">
+                Semua agen bekerja estafet secara otomatis dari UX, PM, Arsitek, Keamanan hingga Kode Next.js selesai.
+              </span>
+            </div>
+          </label>
+
+          <label
+            className={`flex cursor-pointer gap-2.5 rounded-sm border p-3.5 transition-colors ${
+              executionMode === 'step' ? 'border-primary bg-primary/10' : 'border-border hover:bg-secondary'
+            }`}
+          >
+            <input
+              type="radio"
+              name="executionMode"
+              value="step"
+              checked={executionMode === 'step'}
+              onChange={() => setExecutionMode('step')}
+              className="mt-1"
+            />
+            <div>
+              <span className="block font-semibold text-sm">🛡️ Step-by-Step (Approval Gates)</span>
+              <span className="block text-xs text-muted-foreground mt-0.5">
+                Agen berhenti di setiap tahapan (PRD, Arsitektur, Keamanan) untuk Anda review &amp; setujui sebelum kode dirakit.
+              </span>
+            </div>
+          </label>
+        </div>
       </Section>
 
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}

@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import { Archive, Check, Clock, Copy, Download, ExternalLink, FolderGit2, History, RotateCcw, Save } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Archive, Check, Clock, Copy, Download, ExternalLink, FolderGit2, History, RotateCcw, RotateCw, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogHeader, DialogFooter } from '@/components/ui/dialog';
 import { api } from '@/lib/use-project';
+import { getRemainingTtlMs, formatTtlRemaining } from '@/lib/cleanup-core';
 import type { Project, ProjectVersion } from '@/types';
 
 /** Step 8: final export (.zip) and Version History. */
@@ -36,6 +37,35 @@ export default function ExportPanel({
   const [ghLoading, setGhLoading] = useState(false);
   const [ghError, setGhError] = useState('');
   const [ghSuccess, setGhSuccess] = useState<{ url: string; repo: string } | null>(null);
+
+  const [extending, setExtending] = useState(false);
+  const [extendMsg, setExtendMsg] = useState('');
+  const [ttlInfo, setTtlInfo] = useState(() =>
+    project ? formatTtlRemaining(getRemainingTtlMs(project)) : null
+  );
+
+  useEffect(() => {
+    if (!project) return;
+    const update = () => setTtlInfo(formatTtlRemaining(getRemainingTtlMs(project)));
+    update();
+    const timer = setInterval(update, 10000);
+    return () => clearInterval(timer);
+  }, [project]);
+
+  const extendTtl = async () => {
+    setExtending(true);
+    setExtendMsg('');
+    try {
+      await api(`/api/projects/${projectId}/extend-ttl`, { method: 'POST' });
+      setExtendMsg('Berhasil diperpanjang +5 jam');
+      setTimeout(() => setExtendMsg(''), 3500);
+      onChanged();
+    } catch (err: any) {
+      setExtendMsg(err.message || 'Gagal perpanjang');
+    } finally {
+      setExtending(false);
+    }
+  };
 
   const pushToGithub = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,18 +127,61 @@ export default function ExportPanel({
               Demi menjaga kebersihan dan kapasitas disk VPS, file kode hasil kompilasi otomatis dibersihkan jika tidak diunduh dalam 5 jam. Dokumen spesifikasi dan PRD tetap tersimpan aman. Silakan klik tab <strong>Spesifikasi &amp; Setup</strong> untuk melakukan regenerasi kode kapan saja.
             </p>
           </div>
-        ) : fileCount > 0 ? (
-          <div className="mb-4 rounded-md border border-sky-500/30 bg-sky-500/10 p-3 text-xs text-sky-800 dark:text-sky-300">
-            <div className="flex items-center justify-between">
+        ) : fileCount > 0 && ttlInfo ? (
+          <div
+            className={`mb-4 rounded-md border p-3 text-xs transition-colors ${
+              ttlInfo.urgency === 'danger'
+                ? 'border-rose-500/40 bg-rose-500/10 text-rose-800 dark:text-rose-300'
+                : ttlInfo.urgency === 'warning'
+                ? 'border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-300'
+                : ttlInfo.urgency === 'downloaded'
+                ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300'
+                : 'border-sky-500/30 bg-sky-500/10 text-sky-800 dark:text-sky-300'
+            }`}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="flex items-center gap-1.5 font-medium">
-                <Clock className="h-3.5 w-3.5 shrink-0" /> Penyimpanan Temporary VPS:
+                <Clock className="h-3.5 w-3.5 shrink-0" /> Status TTL Berkas:
               </span>
-              <span className="font-semibold">{project?.downloaded ? 'Sudah Diunduh' : 'Maks. 5 Jam'}</span>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold ${
+                    ttlInfo.urgency === 'danger'
+                      ? 'bg-rose-500/20 text-rose-600 dark:text-rose-400 animate-pulse'
+                      : ttlInfo.urgency === 'warning'
+                      ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400'
+                      : ttlInfo.urgency === 'downloaded'
+                      ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                      : 'bg-sky-500/20 text-sky-700 dark:text-sky-300'
+                  }`}
+                >
+                  ⏱️ {ttlInfo.label}
+                </span>
+                {!project?.downloaded && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-6 px-2 text-[11px]"
+                    onClick={extendTtl}
+                    disabled={extending}
+                    title="Perpanjang masa aktif berkas sementara 5 jam lagi"
+                  >
+                    <RotateCw className={`h-3 w-3 mr-1 ${extending ? 'animate-spin' : ''}`} />
+                    +5 Jam
+                  </Button>
+                )}
+              </div>
             </div>
+            {extendMsg && (
+              <p className="mt-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+                {extendMsg}
+              </p>
+            )}
             <p className="mt-1 text-[11px] text-muted-foreground">
               {project?.downloaded
-                ? `Berkas telah diunduh (${project.downloaded_at ? new Date(project.downloaded_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : 'Ya'}). File tetap aman.`
-                : 'File hasil kompilasi di VPS bersifat temporary dan akan otomatis dihapus jika tidak diunduh dalam 5 jam.'}
+                ? `Berkas telah diamankan lewat unduhan (${project.downloaded_at ? new Date(project.downloaded_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : 'Ya'}). File di VPS tetap aman.`
+                : 'File kompilasi di VPS otomatis dihapus setelah 5 jam jika belum diunduh. Anda dapat memperpanjang masa aktif berkas dengan tombol di atas.'}
             </p>
           </div>
         ) : null}

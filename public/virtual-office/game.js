@@ -7468,6 +7468,17 @@ function openModal(agent) {
     selectedAgent = agent;
     window.selectedAgent = agent;
 
+    try {
+        if (window.parent && window.parent !== window) {
+            window.parent.postMessage({
+                type: 'FACTORY_AGENT_CLICK',
+                name: agent.name,
+                role: agent.role || agent.id,
+                state: agent.state
+            }, '*');
+        }
+    } catch(e) {}
+
     // Reset zoom to 1x on mobile so modal renders at normal size
     const vp = document.querySelector('meta[name="viewport"]');
     if (vp) {

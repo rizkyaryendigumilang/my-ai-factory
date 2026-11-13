@@ -93,6 +93,16 @@ function SoftwareHouseOffice() {
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
+  useEffect(() => {
+    const handleMsg = (e: MessageEvent) => {
+      if (e.data?.type === 'FACTORY_AGENT_CLICK') {
+        setShowDivisionModal(true);
+      }
+    };
+    window.addEventListener('message', handleMsg);
+    return () => window.removeEventListener('message', handleMsg);
+  }, []);
+
   const handleSavedDivisions = useCallback(() => {
     loadDivisions();
     setIframeKey((k) => k + 1);

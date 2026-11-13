@@ -43,6 +43,7 @@ export interface DesignReference {
 }
 
 export type ProjectStatus = 'draft' | 'running' | 'completed' | 'failed';
+export type ExecutionMode = 'auto' | 'step';
 
 export interface Project {
   id: string;
@@ -64,6 +65,8 @@ export interface Project {
   progress_done?: number;
   progress_total?: number;
   last_error?: string;
+  execution_mode?: ExecutionMode;
+  approval_gate?: string | null;
 }
 
 export type DocType =
