@@ -3,11 +3,33 @@
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Building2, Check, Copy, ExternalLink, Plus, Rocket, Settings, ShieldCheck, SlidersHorizontal, Trash2, Users } from 'lucide-react';
+import {
+  Activity,
+  Building2,
+  Check,
+  Code2,
+  Copy,
+  ExternalLink,
+  Eye,
+  Factory,
+  FileCode2,
+  FolderGit2,
+  Laptop2,
+  Plus,
+  Rocket,
+  Settings,
+  ShieldCheck,
+  SlidersHorizontal,
+  Split,
+  Trash2,
+  Users,
+  Zap,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { officeActivity } from '@/lib/activity';
 import { api, useProjectState } from '@/lib/use-project';
 import type { Project } from '@/types';
+import type { TelemetryState } from '@/lib/telemetry';
 import CodeExplorer from './components/CodeExplorer';
 import DocumentViewer from './components/DocumentViewer';
 import ExportPanel from './components/ExportPanel';
@@ -16,20 +38,19 @@ import VirtualOffice from './components/VirtualOffice';
 import ProjectSetup from './components/ProjectSetup';
 import VisualEditor from './components/VisualEditor';
 import MarketingKitPanel from './components/MarketingKitPanel';
+import EngineCommandStrip from './components/EngineCommandStrip';
+import EngineInspectorDrawer from './components/EngineInspectorDrawer';
 import DivisionAgentModal from '../office/components/DivisionAgentModal';
 import SettingsModal from '@/components/SettingsModal';
 import WarRoomModal from '@/components/WarRoomModal';
 
-const TABS = [
-  ['setup', 'Spesifikasi & Setup'],
-  ['monitor', 'Lantai Produksi'],
-  ['docs', 'Dokumen & Diagram'],
-  ['code', 'Direktori Kode'],
-  ['preview', 'Sandbox & Edit Visual'],
-  ['export', 'Ekspor & Versi'],
-  ['launch', 'Marketing & Launch Kit'],
+const PILLARS = [
+  { id: 'pipeline', label: '1. Pipeline & Produksi', icon: Factory, desc: 'Lantai produksi, setup & telemetri agen' },
+  { id: 'blueprint', label: '2. Cetak Biru & Dokumen', icon: FileCode2, desc: 'PRD, Gherkin Runner, ERD & OWASP Gate' },
+  { id: 'code', label: '3. Kode & Sandbox Visual', icon: Laptop2, desc: 'Workspace terpadu: editor berkas & live preview' },
+  { id: 'release', label: '4. Rilis & Peluncuran', icon: Rocket, desc: 'Arsip ZIP versi & Marketing Launch Kit' },
 ] as const;
-type Tab = (typeof TABS)[number][0];
+type PillarId = (typeof PILLARS)[number]['id'];
 
 const STATUS: Record<Project['status'], { label: string; dot: string }> = {
   draft: { label: 'Draft', dot: 'bg-muted-foreground' },
@@ -45,15 +66,38 @@ function Workspace() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [listLoaded, setListLoaded] = useState(false);
   const [health, setHealth] = useState<{ store: string; ai: string; plan: string } | null>(null);
-  const [tab, setTab] = useState<Tab>('setup');
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [copiedId, setCopiedId] = useState(false);
+
+  // 4 Unified Pillars Navigation
+  const [pillar, setPillar] = useState<PillarId>('pipeline');
+  const [pipelineView, setPipelineView] = useState<'monitor' | 'setup'>('monitor');
+  const [codeSubView, setCodeSubView] = useState<'split' | 'code' | 'preview'>('split');
+  const [releaseSubView, setReleaseSubView] = useState<'launch' | 'export'>('launch');
+
+  // Modals & Drawers
+  const [showEngineDrawer, setShowEngineDrawer] = useState(false);
   const [showDivisionModal, setShowDivisionModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showWarRoom, setShowWarRoom] = useState(false);
+
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState(false);
   const [stepLoading, setStepLoading] = useState(false);
+  const [telemetry, setTelemetry] = useState<TelemetryState | null>(null);
+
   const { state, error, loading, refresh } = useProjectState(activeId);
+
+  // Live Telemetry Subscription
+  useEffect(() => {
+    if (!activeId) return;
+    const es = new EventSource(`/api/projects/${activeId}/stream`);
+    es.addEventListener('telemetry', (e) => {
+      try {
+        setTelemetry(JSON.parse(e.data));
+      } catch {}
+    });
+    return () => es.close();
+  }, [activeId]);
 
   const handleApproveGate = async (autoPilot = false) => {
     if (!activeId) return;
@@ -65,7 +109,8 @@ function Workspace() {
         body: JSON.stringify({ autoPilot }),
       });
       refresh();
-      setTab('monitor');
+      setPillar('pipeline');
+      setPipelineView('monitor');
     } catch (e: any) {
       setActionError(e.message || 'Gagal menyetujui gate');
     } finally {
@@ -73,6 +118,7 @@ function Workspace() {
     }
   };
 
+  // Keyboard Shortcuts (1-4 for Pillars, E for Engine Inspector, W for War Room)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement | null)?.tagName;
@@ -80,12 +126,21 @@ function Workspace() {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.key === 'Escape') {
         setConfirmDeleteId(null);
+        setShowEngineDrawer(false);
         return;
       }
       const num = Number(e.key);
-      if (num >= 1 && num <= TABS.length) {
+      if (num >= 1 && num <= PILLARS.length) {
         e.preventDefault();
-        setTab(TABS[num - 1][0]);
+        setPillar(PILLARS[num - 1].id);
+      }
+      if (e.key.toLowerCase() === 'e') {
+        e.preventDefault();
+        setShowEngineDrawer((v) => !v);
+      }
+      if (e.key.toLowerCase() === 'w') {
+        e.preventDefault();
+        setShowWarRoom((v) => !v);
       }
     };
     window.addEventListener('keydown', onKey);
@@ -111,13 +166,18 @@ function Workspace() {
 
   const status = state?.project.status;
   useEffect(() => {
-    setTab('setup');
+    setPillar('pipeline');
+    if (status === 'draft') setPipelineView('setup');
+    else setPipelineView('monitor');
     setConfirmDeleteId(null);
     setActionError(null);
-  }, [activeId]);
+  }, [activeId, status]);
 
   useEffect(() => {
-    if (status === 'running') setTab('monitor');
+    if (status === 'running') {
+      setPillar('pipeline');
+      setPipelineView('monitor');
+    }
     if (status === 'completed') loadList().catch(() => {});
   }, [status, loadList]);
 
@@ -139,7 +199,8 @@ function Workspace() {
 
   return (
     <div className="flex h-screen flex-col bg-background text-foreground antialiased selection:bg-primary/25 selection:text-foreground">
-      <header className="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.07] bg-[#080B11]/85 backdrop-blur-xl px-4 py-2.5">
+      {/* Streamlined Top Navigation Header */}
+      <header className="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.07] bg-[#080B11]/90 backdrop-blur-xl px-4 py-2.5">
         <div className="flex items-center gap-3.5">
           <Link href="/ai-factory" className="flex items-center gap-2.5 font-semibold group cursor-pointer">
             <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground shadow-sm transition-transform duration-100 ease-out group-hover:scale-105 active:scale-95">
@@ -177,69 +238,60 @@ function Workspace() {
               <span className="text-primary font-semibold">{health.plan === 'pro' ? 'Pro' : 'Free'}</span>
             </div>
           )}
-          <Button asChild size="sm" variant="outline" className="h-8">
-            <Link
-              href={activeId ? `/office?project=${activeId}` : '/office'}
-              className="inline-flex items-center gap-1.5"
-              title="Buka Virtual Office Layar Penuh"
-            >
-              <Building2 className="h-3.5 w-3.5 text-primary" />
-              <span className="hidden sm:inline">Virtual Office</span>
-            </Link>
-          </Button>
+
+          {/* Quick War Room Trigger */}
           <Button
             type="button"
             size="sm"
             variant="outline"
             onClick={() => setShowWarRoom(true)}
-            className="hidden md:inline-flex h-8 items-center gap-1.5 border-amber-500/30 text-amber-300 hover:bg-amber-500/10"
+            className="h-8 items-center gap-1.5 border-amber-500/30 text-amber-300 hover:bg-amber-500/10 text-xs font-medium"
             title="Panggil Rapat Darurat Meja Bundar ke-6 Spesialis AI (War Room)"
           >
             <Users className="h-3.5 w-3.5 text-amber-400" />
-            <span>War Room</span>
+            <span className="hidden sm:inline">War Room</span>
           </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={() => setShowDivisionModal(true)}
-            className="hidden md:inline-flex h-8 items-center gap-1.5"
-            title="Pilih & Konfigurasi Agen VPS untuk masing-masing Divisi Kantor"
-          >
-            <SlidersHorizontal className="h-3.5 w-3.5 text-primary" />
-            <span>Pilih Agen VPS</span>
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={() => setShowSettingsModal(true)}
-            className="inline-flex h-8 items-center gap-1.5"
-            title="Buka Pengaturan Pabrik & Integrasi Sistem (AI, VPS, GitHub)"
-          >
-            <Settings className="h-3.5 w-3.5 text-primary" />
-            <span className="hidden sm:inline">Pengaturan</span>
-          </Button>
-          <Button asChild size="sm" variant="outline" className="hidden lg:inline-flex h-8">
-            <a
-              href="https://43.156.236.102:8444/?profile=default"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1"
-              title="Buka Hermes Agent VPS Dashboard Langsung (Port 8444)"
+
+          {/* Secondary Tools Menu */}
+          <div className="flex items-center gap-1">
+            <Button asChild size="sm" variant="ghost" className="h-8 text-xs text-muted-foreground hover:text-foreground">
+              <Link href={activeId ? `/office?project=${activeId}` : '/office'} title="Buka Virtual Office Layar Penuh">
+                <Building2 className="h-3.5 w-3.5" />
+                <span className="hidden md:inline ml-1">Office 2D</span>
+              </Link>
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => setShowDivisionModal(true)}
+              className="h-8 text-xs text-muted-foreground hover:text-foreground"
+              title="Konfigurasi Agen VPS untuk masing-masing Divisi"
             >
-              <span>Hermes VPS</span>
-              <ExternalLink className="h-3 w-3 opacity-60" />
-            </a>
-          </Button>
-          <Button asChild size="sm" className="h-8">
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              <span className="hidden md:inline ml-1">Agen VPS</span>
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => setShowSettingsModal(true)}
+              className="h-8 text-xs text-muted-foreground hover:text-foreground"
+              title="Pengaturan Pabrik & API Keys"
+            >
+              <Settings className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+
+          <Button asChild size="sm" className="h-8 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs shadow-sm">
             <Link href="/"><Plus className="mr-1 h-3.5 w-3.5" /> Proyek Baru</Link>
           </Button>
         </div>
       </header>
 
       <div className="flex min-h-0 flex-1">
-        <aside className="hidden w-64 shrink-0 flex-col border-r border-white/[0.07] bg-[#0B0F19]/70 backdrop-blur-md md:flex">
+        {/* Left Project Sidebar */}
+        <aside className="hidden w-60 shrink-0 flex-col border-r border-white/[0.07] bg-[#0B0F19]/70 backdrop-blur-md md:flex">
           <div className="flex items-center justify-between border-b border-white/[0.07] px-4 py-2.5 text-xs text-muted-foreground">
             <span className="font-semibold text-foreground tracking-tight">Daftar Proyek</span>
             <span className="rounded-full bg-white/[0.06] px-2 py-0.5 text-[11px] font-medium">{projects.length}</span>
@@ -287,7 +339,8 @@ function Workspace() {
           </ul>
         </aside>
 
-        <main className="flex min-w-0 flex-1 flex-col">
+        {/* Main Central Workspace */}
+        <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
           {actionError && (
             <div role="alert" className="border-b border-border bg-secondary px-4 py-2 text-xs text-destructive">{actionError}</div>
           )}
@@ -309,10 +362,11 @@ function Workspace() {
             <p className="p-8 text-center text-sm text-muted-foreground">{loading ? 'Memuat proyek…' : ''}</p>
           ) : (
             <>
-              <div className="border-b border-white/[0.07] bg-[#0B0F19]/60 px-5 pt-4 pb-3 backdrop-blur-md">
-                <div className="flex flex-wrap items-center justify-between gap-3 pb-3">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <h1 className="truncate text-xl font-bold tracking-tight text-foreground">{state.project.title}</h1>
+              {/* Workspace Header & Persistent Engine HUD */}
+              <div className="border-b border-white/[0.07] bg-[#0B0F19]/60 px-5 pt-3.5 pb-2.5 backdrop-blur-md space-y-2.5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <h1 className="truncate text-lg font-bold tracking-tight text-foreground">{state.project.title}</h1>
                     <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.04] px-2.5 py-0.5 text-xs font-medium text-foreground">
                       <span className={`inline-block h-1.5 w-1.5 rounded-full ${STATUS[state.project.status].dot}`} />
                       {STATUS[state.project.status].label}
@@ -331,42 +385,51 @@ function Workspace() {
                       <span className="font-mono text-[11px]">{copiedId ? 'Disalin' : `#${state.project.id.slice(0, 8)}`}</span>
                     </button>
                   </div>
-                  <div className="md:hidden">
-                    {confirmDeleteId === state.project.id ? (
-                      <Button size="sm" variant="destructive" onClick={() => remove(state.project)}>Konfirmasi Hapus</Button>
-                    ) : (
-                      <Button size="sm" variant="ghost" onClick={() => setConfirmDeleteId(state.project.id)}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
-                  </div>
+
+                  {/* Engine Command Strip: Telemetry, Stepper & Quick Drawer */}
+                  <EngineCommandStrip
+                    project={state.project}
+                    telemetry={telemetry}
+                    onOpenInspector={() => setShowEngineDrawer(true)}
+                    onOpenWarRoom={() => setShowWarRoom(true)}
+                  />
                 </div>
 
-                <nav className="flex w-full gap-1 overflow-x-auto p-1 bg-black/35 rounded-lg border border-white/[0.06]" aria-label="Tahap proyek">
-                  {TABS.map(([k, label], idx) => (
-                    <button
-                      key={k}
-                      type="button"
-                      onClick={() => setTab(k)}
-                      aria-current={tab === k ? 'page' : undefined}
-                      className={`flex items-center gap-1.5 whitespace-nowrap rounded-md px-3.5 py-1.5 text-xs font-medium transition-all duration-100 ${
-                        tab === k
-                          ? 'bg-white/[0.1] text-foreground font-semibold shadow-sm border border-white/[0.08]'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-white/[0.04]'
-                      }`}
-                    >
-                      <span>{label}</span>
-                      <kbd className="hidden rounded bg-black/40 border border-white/[0.08] px-1 py-0.2 text-[10px] opacity-60 sm:inline-block">
-                        {idx + 1}
-                      </kbd>
-                    </button>
-                  ))}
+                {/* 4-Pillar Modern Navigation Bar */}
+                <nav className="flex w-full gap-1.5 overflow-x-auto p-1 bg-black/40 rounded-xl border border-white/[0.06]" aria-label="Pilar Utama Ruang Kerja">
+                  {PILLARS.map((p, idx) => {
+                    const Icon = p.icon;
+                    const isCurrent = pillar === p.id;
+
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setPillar(p.id)}
+                        aria-current={isCurrent ? 'page' : undefined}
+                        className={`flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3.5 py-2 text-xs transition-all duration-150 ${
+                          isCurrent
+                            ? 'bg-white/[0.1] text-foreground font-semibold shadow-sm border border-white/[0.08]'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-white/[0.04]'
+                        }`}
+                        title={p.desc}
+                      >
+                        <Icon className={`h-4 w-4 ${isCurrent ? 'text-primary' : 'text-muted-foreground'}`} />
+                        <span>{p.label}</span>
+                        <kbd className="hidden rounded bg-black/40 border border-white/[0.08] px-1.5 py-0.2 text-[10px] opacity-60 lg:inline-block">
+                          {idx + 1}
+                        </kbd>
+                      </button>
+                    );
+                  })}
                 </nav>
               </div>
 
+              {/* Pillar Body Content */}
               <div className="min-h-0 flex-1 overflow-y-auto p-5 space-y-4">
+                {/* Approval Gate Alert Banner */}
                 {state.project.approval_gate && (
-                  <div className="rounded-xl border border-amber-500/35 bg-[#121826] p-4 text-xs shadow-lg flex flex-wrap items-center justify-between gap-4">
+                  <div className="rounded-xl border border-amber-500/35 bg-[#121826] p-4 text-xs shadow-lg flex flex-wrap items-center justify-between gap-4 animate-in fade-in">
                     <div className="flex items-start gap-3">
                       <div className="mt-0.5 rounded-lg bg-amber-500/15 border border-amber-500/30 p-2 text-amber-400">
                         <ShieldCheck className="h-5 w-5" />
@@ -383,7 +446,7 @@ function Workspace() {
                         </div>
                         <p className="mt-1 text-muted-foreground text-xs leading-relaxed max-w-2xl">
                           {state.project.approval_gate === 'gate_pm'
-                            ? 'Dokumen PRD & BRD siap. Anda dapat memeriksa tab "Dokumen & Diagram" sebelum mengizinkan System Analyst merancang ERD.'
+                            ? 'Dokumen PRD & BRD siap. Anda dapat memeriksa pilar "Cetak Biru" sebelum mengizinkan System Analyst merancang ERD.'
                             : state.project.approval_gate === 'gate_arch'
                             ? 'Diagram UML, ERD, dan DFD siap. Setujui untuk melanjutkan ke audit keamanan OWASP dan QA.'
                             : 'Aturan keamanan dan skenario pengujian siap. Otorisasikan Fullstack Coder untuk merakit berkas kode.'}
@@ -422,96 +485,229 @@ function Workspace() {
                     </div>
                   </div>
                 )}
-                {tab === 'setup' && (
-                  <ProjectSetup
-                    project={state.project}
-                    running={running}
-                    demo={health?.ai === 'demo'}
-                    onSaved={() => { refresh(); loadList().catch(() => {}); }}
-                    onStarted={() => { setTab('monitor'); refresh(); }}
-                  />
-                )}
-                {tab === 'monitor' && (
-                  <div className="grid h-full min-h-[480px] gap-5 lg:grid-cols-2">
-                    <LiveNotebook logs={state.logs} running={running} projectId={state.project.id} />
-                    <div className="space-y-3">
-                      <div className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-border bg-card p-3 text-xs">
-                        <div className="flex items-center gap-2.5">
-                          <span className="flex h-7 w-7 items-center justify-center rounded-sm bg-primary/10 text-primary">
-                            <Building2 className="h-4 w-4" />
-                          </span>
-                          <div>
-                            <div className="font-semibold text-foreground">Kantor Software House AI</div>
-                            <div className="text-[11px] text-muted-foreground">Koreografi 6 divisi spesialis ala Virtual Office</div>
+
+                {/* PILAR 1: PIPELINE & PRODUKSI */}
+                {pillar === 'pipeline' && (
+                  <div className="space-y-4">
+                    {/* View Switcher: Monitor Lantai Produksi vs Setup Spesifikasi */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.06] pb-3">
+                      <div>
+                        <h2 className="text-sm font-bold text-foreground">
+                          {pipelineView === 'monitor' ? 'Lantai Produksi & Monitoring Agen' : 'Konfigurasi & Prompt Spesifikasi'}
+                        </h2>
+                        <p className="text-[11px] text-muted-foreground">
+                          {pipelineView === 'monitor'
+                            ? 'Visual 2D stasiun kerja spesialis, alur pemikiran, dan live telemetri komputasi'
+                            : 'Atur prompt mentah, persona, referensi desain, dan skills sebelum perakitan'}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setPipelineView((v) => (v === 'monitor' ? 'setup' : 'monitor'))}
+                        className="h-8 text-xs font-semibold"
+                      >
+                        {pipelineView === 'monitor' ? (
+                          <>
+                            <SlidersHorizontal className="mr-1.5 h-3.5 w-3.5 text-primary" />
+                            Ubah Spesifikasi &amp; Prompt
+                          </>
+                        ) : (
+                          <>
+                            <Building2 className="mr-1.5 h-3.5 w-3.5 text-primary" />
+                            Kembali ke Lantai Produksi
+                          </>
+                        )}
+                      </Button>
+                    </div>
+
+                    {pipelineView === 'setup' ? (
+                      <ProjectSetup
+                        project={state.project}
+                        running={running}
+                        demo={health?.ai === 'demo'}
+                        onSaved={() => { refresh(); loadList().catch(() => {}); }}
+                        onStarted={() => { setPipelineView('monitor'); refresh(); }}
+                      />
+                    ) : (
+                      <div className="grid h-full min-h-[480px] gap-5 lg:grid-cols-2">
+                        <LiveNotebook logs={state.logs} running={running} projectId={state.project.id} />
+                        <div className="space-y-3">
+                          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/[0.08] bg-[#0E131F]/90 p-3 text-xs">
+                            <div className="flex items-center gap-2.5">
+                              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                <Building2 className="h-4 w-4" />
+                              </span>
+                              <div>
+                                <div className="font-semibold text-foreground">Kantor Software House AI</div>
+                                <div className="text-[11px] text-muted-foreground">Koreografi 6 divisi spesialis virtual</div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Link
+                                href={`/office?project=${state.project.id}`}
+                                className="inline-flex items-center gap-1 rounded-md border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 text-xs text-muted-foreground hover:bg-white/[0.08] hover:text-foreground"
+                                title="Buka Virtual Office Layar Penuh"
+                              >
+                                <span>Layar Penuh</span>
+                              </Link>
+                              <a
+                                href={`/virtual-office/index.html?project=${state.project.id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 rounded-md border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 text-xs text-muted-foreground hover:bg-white/[0.08] hover:text-foreground"
+                              >
+                                <span>Tab Baru</span>
+                                <ExternalLink className="h-3 w-3 opacity-70" />
+                              </a>
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setShowDivisionModal(true)}
-                            className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground transition-[transform,background-color,border-color,color] duration-100 ease-out hover:border-primary active:scale-[0.97]"
-                            title="Pilih & Konfigurasi Agen VPS untuk masing-masing Divisi Kantor"
-                          >
-                            <SlidersHorizontal className="h-3 w-3 text-primary" />
-                            <span>Pilih Agen VPS</span>
-                          </button>
-                          <Link
-                            href={`/office?project=${state.project.id}`}
-                            className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground transition-[transform,background-color,border-color,color] duration-100 ease-out hover:border-primary active:scale-[0.97]"
-                            title="Buka Virtual Office Layar Penuh"
-                          >
-                            <span>Layar Penuh</span>
-                          </Link>
-                          <a
-                            href={`/virtual-office/index.html?project=${state.project.id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 rounded-sm border border-border bg-background px-2.5 py-1 text-xs text-muted-foreground transition-[transform,background-color,border-color,color] duration-100 ease-out hover:border-primary hover:text-foreground active:scale-[0.97]"
-                            title="Buka Virtual Office di Tab Baru (Layar Penuh Mandiri)"
-                          >
-                            <span>Buka Tab Baru</span>
-                            <ExternalLink className="h-3 w-3 opacity-70" />
-                          </a>
+                          <VirtualOffice activity={activity} />
+                          <p className="text-xs text-muted-foreground leading-relaxed">
+                            Stasiun kerja menyala sesuai spesialis yang sedang aktif di kantor software house (PM, UI/UX, Analyst, Security, Scout, Coder). Saat satu tahap selesai, spesialis berjalan ke meja tengah untuk serah-terima artefak.
+                          </p>
                         </div>
                       </div>
-                      <VirtualOffice activity={activity} />
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        Stasiun kerja menyala sesuai spesialis yang sedang aktif di kantor software house (PM, UI/UX, Analyst, Security, Scout, Coder). Saat satu tahap selesai, spesialis berjalan ke meja tengah untuk serah-terima artefak ke tahap selanjutnya.
-                      </p>
-                    </div>
+                    )}
                   </div>
                 )}
-                {tab === 'docs' && <DocumentViewer projectId={state.project.id} documents={state.documents} onChanged={refresh} />}
-                {tab === 'code' && (
-                  <CodeExplorer
-                    projectId={state.project.id}
-                    files={state.files}
-                    busy={running}
-                    onChanged={() => { refresh(); setTab('monitor'); }}
-                  />
+
+                {/* PILAR 2: CETAK BIRU & DOKUMEN */}
+                {pillar === 'blueprint' && (
+                  <DocumentViewer projectId={state.project.id} documents={state.documents} onChanged={refresh} />
                 )}
-                {tab === 'preview' && (
-                  <VisualEditor
-                    projectId={state.project.id}
-                    project={state.project}
-                    files={state.files}
-                    busy={running}
-                    onChanged={refresh}
-                    onSelectFile={() => setTab('code')}
-                  />
+
+                {/* PILAR 3: KODE & SANDBOX VISUAL */}
+                {pillar === 'code' && (
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.06] pb-3">
+                      <div>
+                        <h2 className="text-sm font-bold text-foreground">Studio Konstruksi Kode &amp; Preview Sandbox</h2>
+                        <p className="text-[11px] text-muted-foreground">
+                          Sinkronisasi dua arah: Editor direktori berkas Next.js 15, visual preview instan, dan live VPS runner.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1 rounded-lg border border-white/[0.08] bg-black/40 p-1 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => setCodeSubView('split')}
+                          className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
+                            codeSubView === 'split' ? 'bg-primary/20 text-primary font-semibold' : 'text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          <Split className="h-3.5 w-3.5" /> Split (Kode + Preview)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCodeSubView('code')}
+                          className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
+                            codeSubView === 'code' ? 'bg-primary/20 text-primary font-semibold' : 'text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          <Code2 className="h-3.5 w-3.5" /> Hanya Kode
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCodeSubView('preview')}
+                          className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
+                            codeSubView === 'preview' ? 'bg-primary/20 text-primary font-semibold' : 'text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          <Eye className="h-3.5 w-3.5" /> Hanya Preview
+                        </button>
+                      </div>
+                    </div>
+
+                    {codeSubView === 'split' ? (
+                      <div className="grid h-[calc(100vh-230px)] gap-4 lg:grid-cols-2">
+                        <div className="h-full min-h-0 overflow-hidden">
+                          <CodeExplorer
+                            projectId={state.project.id}
+                            files={state.files}
+                            busy={running}
+                            onChanged={refresh}
+                          />
+                        </div>
+                        <div className="h-full min-h-0 overflow-hidden">
+                          <VisualEditor
+                            projectId={state.project.id}
+                            project={state.project}
+                            files={state.files}
+                            busy={running}
+                            onChanged={refresh}
+                            onSelectFile={() => setCodeSubView('code')}
+                          />
+                        </div>
+                      </div>
+                    ) : codeSubView === 'code' ? (
+                      <div className="h-[calc(100vh-230px)]">
+                        <CodeExplorer
+                          projectId={state.project.id}
+                          files={state.files}
+                          busy={running}
+                          onChanged={refresh}
+                        />
+                      </div>
+                    ) : (
+                      <div className="h-[calc(100vh-230px)]">
+                        <VisualEditor
+                          projectId={state.project.id}
+                          project={state.project}
+                          files={state.files}
+                          busy={running}
+                          onChanged={refresh}
+                          onSelectFile={() => setCodeSubView('code')}
+                        />
+                      </div>
+                    )}
+                  </div>
                 )}
-                {tab === 'export' && (
-                  <ExportPanel
-                    projectId={state.project.id}
-                    project={state.project}
-                    versions={state.versions}
-                    fileCount={state.files.length}
-                    busy={running}
-                    onChanged={refresh}
-                  />
-                )}
-                {tab === 'launch' && (
-                  <MarketingKitPanel projectId={state.project.id} />
+
+                {/* PILAR 4: RILIS & PELUNCURAN */}
+                {pillar === 'release' && (
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.06] pb-3">
+                      <div>
+                        <h2 className="text-sm font-bold text-foreground">Distribusi, Versi &amp; Peluncuran Pasar</h2>
+                        <p className="text-[11px] text-muted-foreground">
+                          Snapshot versi, unduh arsip ZIP, dan buat aset rilis Product Hunt/X/LinkedIn otomatis.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1 rounded-lg border border-white/[0.08] bg-black/40 p-1 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => setReleaseSubView('launch')}
+                          className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
+                            releaseSubView === 'launch' ? 'bg-primary/20 text-primary font-semibold' : 'text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          <Rocket className="h-3.5 w-3.5" /> Marketing Launch Kit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setReleaseSubView('export')}
+                          className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
+                            releaseSubView === 'export' ? 'bg-primary/20 text-primary font-semibold' : 'text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          <FolderGit2 className="h-3.5 w-3.5" /> Versi &amp; Unduh ZIP
+                        </button>
+                      </div>
+                    </div>
+
+                    {releaseSubView === 'launch' ? (
+                      <MarketingKitPanel projectId={state.project.id} />
+                    ) : (
+                      <ExportPanel
+                        projectId={state.project.id}
+                        project={state.project}
+                        versions={state.versions}
+                        fileCount={state.files.length}
+                        busy={running}
+                        onChanged={refresh}
+                      />
+                    )}
+                  </div>
                 )}
               </div>
             </>
@@ -519,6 +715,16 @@ function Workspace() {
         </main>
       </div>
 
+      {/* Slide-over Engine Inspector Drawer */}
+      <EngineInspectorDrawer
+        isOpen={showEngineDrawer}
+        onClose={() => setShowEngineDrawer(false)}
+        project={state?.project ?? ({} as any)}
+        telemetry={telemetry}
+        onOpenWarRoom={() => setShowWarRoom(true)}
+      />
+
+      {/* Modals */}
       <DivisionAgentModal
         isOpen={showDivisionModal}
         onClose={() => setShowDivisionModal(false)}
