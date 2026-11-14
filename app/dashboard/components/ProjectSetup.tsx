@@ -23,9 +23,9 @@ interface SkillInfo {
 }
 
 const Section = ({ n, title, children }: { n: number; title: string; children: React.ReactNode }) => (
-  <section className="rounded-sm border border-border bg-card p-5">
-    <h2 className="mb-3 flex items-center gap-2.5 text-xl font-bold tracking-tight">
-      <span className="flex h-6 w-6 items-center justify-center rounded-sm bg-primary text-xs font-bold text-primary-foreground">{n}</span>
+  <section className="rounded-xl border border-white/[0.08] bg-[#0E131F]/90 p-5 shadow-sm backdrop-blur-sm">
+    <h2 className="mb-3.5 flex items-center gap-2.5 text-lg font-bold tracking-tight text-foreground">
+      <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground shadow-sm">{n}</span>
       {title}
     </h2>
     {children}

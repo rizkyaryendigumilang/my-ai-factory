@@ -111,9 +111,9 @@ export default function ExportPanel({
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
-      <section className="rounded-md border border-border bg-card p-4">
-        <h2 className="mb-1 flex items-center gap-2 text-xl font-bold tracking-tight"><Archive className="h-4 w-4 text-primary" /> Ekspor proyek</h2>
-        <p className="mb-3 text-sm text-muted-foreground">
+      <section className="rounded-xl border border-white/[0.08] bg-[#0E131F]/90 p-5 shadow-sm backdrop-blur-sm">
+        <h2 className="mb-1 flex items-center gap-2 text-lg font-bold tracking-tight text-foreground"><Archive className="h-4 w-4 text-primary" /> Ekspor Proyek</h2>
+        <p className="mb-3 text-xs leading-relaxed text-muted-foreground">
           Arsip .zip berisi seluruh direktori kode Next.js 15 dan folder <code>docs/</code> (PRD markdown, diagram .drawio/.mmd, tech stack, QA plan).
         </p>
 
@@ -319,8 +319,8 @@ export default function ExportPanel({
         </Dialog>
       </section>
 
-      <section className="rounded-md border border-border bg-card p-4">
-        <h2 className="mb-1 flex items-center gap-2 text-xl font-bold tracking-tight"><History className="h-4 w-4 text-primary" /> Riwayat Versi</h2>
+      <section className="rounded-xl border border-white/[0.08] bg-[#0E131F]/90 p-5 shadow-sm backdrop-blur-sm">
+        <h2 className="mb-1 flex items-center gap-2 text-lg font-bold tracking-tight text-foreground"><History className="h-4 w-4 text-primary" /> Riwayat Versi</h2>
         <p className="mb-3 text-xs text-muted-foreground">
           Snapshot otomatis disimpan sebelum regenerasi kode, pemulihan, dan edit visual.
         </p>
@@ -332,8 +332,8 @@ export default function ExportPanel({
             run(async () => { await api(`/api/projects/${projectId}/versions`, { method: 'POST', body: JSON.stringify({ label: label.trim() || undefined }) }); setLabel(''); });
           }}
         >
-          <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Label versi (opsional)" maxLength={100} className="h-10 flex-1 rounded-sm border border-input bg-background px-3 text-sm" />
-          <Button type="submit" variant="outline" disabled={working || busy || !fileCount}><Save className="mr-1 h-4 w-4" /> Simpan</Button>
+          <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Label versi (opsional)" maxLength={100} className="h-9 flex-1 rounded-md border border-white/[0.09] bg-background/50 px-3 text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary" />
+          <Button type="submit" variant="outline" size="sm" className="h-9" disabled={working || busy || !fileCount}><Save className="mr-1 h-3.5 w-3.5" /> Simpan</Button>
         </form>
         {versions.length === 0 ? (
           <p className="text-sm text-muted-foreground">Belum ada versi tersimpan.</p>

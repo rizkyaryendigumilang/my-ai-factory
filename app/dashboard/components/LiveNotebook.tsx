@@ -44,13 +44,13 @@ export default function LiveNotebook({ logs, running }: { logs: AgentLog[]; runn
   };
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col rounded-sm border border-border bg-card">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border p-3">
+    <div className="relative flex h-full min-h-0 flex-col rounded-xl border border-white/[0.08] bg-[#0E131F]/90 shadow-md backdrop-blur-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.07] p-3">
         <div className="flex flex-wrap gap-1.5">
           {ROLE_ORDER.map((r) => (
             <span
               key={r}
-              className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-background px-2 py-1 text-xs"
+              className="inline-flex items-center gap-1.5 rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-1 text-xs text-foreground font-medium"
             >
               {ICON[statuses[r]]}
               {AGENT_LABELS[r]}
@@ -61,10 +61,10 @@ export default function LiveNotebook({ logs, running }: { logs: AgentLog[]; runn
           <button
             type="button"
             onClick={copyLogs}
-            className="inline-flex items-center gap-1 rounded-sm border border-border px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            className="inline-flex items-center gap-1.5 rounded-md border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 text-xs text-muted-foreground transition-all duration-100 ease-out hover:bg-white/[0.08] hover:border-white/[0.15] hover:text-foreground active:scale-[0.98]"
           >
-            {copied ? <Check className="h-3.5 w-3.5 text-primary" /> : <Copy className="h-3.5 w-3.5" />}
-            {copied ? 'Tersalin' : 'Salin Log'}
+            {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+            <span>{copied ? 'Tersalin' : 'Salin Log'}</span>
           </button>
         )}
       </div>
@@ -81,10 +81,11 @@ export default function LiveNotebook({ logs, running }: { logs: AgentLog[]; runn
         aria-live="polite"
       >
         {logs.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">
-            Belum ada log produksi. Klik &ldquo;Jalankan Pabrik&rdquo; pada tab Spesifikasi &amp;
-            Setup.
-          </p>
+          <div className="flex flex-col items-center justify-center py-12 text-center text-xs text-muted-foreground">
+            <CircleDashed className="h-6 w-6 text-muted-foreground/40 mb-2" />
+            <p>Belum ada log produksi.</p>
+            <p className="text-[11px] text-muted-foreground/70 mt-0.5">Klik &ldquo;Jalankan Pabrik&rdquo; pada tab Spesifikasi &amp; Setup.</p>
+          </div>
         ) : (
           logs.map((l) => (
             <div key={l.id} className="flex gap-2">
@@ -103,8 +104,8 @@ export default function LiveNotebook({ logs, running }: { logs: AgentLog[]; runn
         )}
         {running && (
           <div className="flex items-center gap-2 pt-1 text-muted-foreground">
-            <Loader2 className="h-3 w-3 animate-spin text-primary" />
-            <span>Menjalankan proses agen…</span>
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+            <span>Menjalankan proses perakitan agen…</span>
           </div>
         )}
       </div>
@@ -113,7 +114,7 @@ export default function LiveNotebook({ logs, running }: { logs: AgentLog[]; runn
         <button
           type="button"
           onClick={scrollToBottom}
-          className="absolute bottom-4 right-4 inline-flex items-center gap-1 rounded-sm border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground shadow-sm hover:border-primary"
+          className="absolute bottom-4 right-4 inline-flex items-center gap-1.5 rounded-md border border-white/[0.1] bg-[#080B11]/90 backdrop-blur-md px-3 py-1.5 text-xs font-semibold text-foreground shadow-lg transition-all duration-100 ease-out hover:border-primary/50 hover:bg-primary/10 active:scale-[0.98]"
         >
           <ArrowDown className="h-3.5 w-3.5 text-primary" /> Ke log terbaru
         </button>
