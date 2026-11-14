@@ -49,17 +49,21 @@ export default function VisualEditor({
   files,
   busy,
   onChanged,
+  onSelectFile,
 }: {
   projectId: string;
   project?: Project;
   files: ProjectFile[];
   busy: boolean;
   onChanged: () => void;
+  onSelectFile?: (filePath: string) => void;
 }) {
   const [viewMode, setViewMode] = useState<'instant' | 'live-vps'>('instant');
   const [runner, setRunner] = useState<SandboxStatus | null>(null);
   const [runnerBusy, setRunnerBusy] = useState(false);
   const [showLogs, setShowLogs] = useState(false);
+  const [autoDebugging, setAutoDebugging] = useState(false);
+  const [autoDebugNotice, setAutoDebugNotice] = useState<{ ok: boolean; msg: string; file?: string } | null>(null);
 
   const html = files.find((f) => f.file_path === 'preview.html')?.file_content;
   const srcDoc = useMemo(() => {
@@ -76,6 +80,63 @@ export default function VisualEditor({
   const [success, setSuccess] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
   const [device, setDevice] = useState<keyof typeof WIDTHS>('desktop');
+
+  const matchedFile = useMemo(() => {
+    if (!selection) return null;
+    const txt = selection.text.toLowerCase();
+    const tag = selection.tag.toLowerCase();
+    if (txt && txt.length > 3) {
+      const match = files.find(
+        (f) => f.file_path !== 'preview.html' && f.file_content.toLowerCase().includes(txt)
+      );
+      if (match) return match.file_path;
+    }
+    const compMatch = files.find(
+      (f) =>
+        f.file_path.endsWith('.tsx') &&
+        (f.file_content.includes(`<${tag}`) || f.file_path.toLowerCase().includes(tag))
+    );
+    if (compMatch) return compMatch.file_path;
+    return files.find((f) => f.file_path.includes('page.tsx'))?.file_path || 'preview.html';
+  }, [selection, files]);
+
+  const handleAutoDebug = async (customErrorText?: string) => {
+    setAutoDebugging(true);
+    setAutoDebugNotice(null);
+    try {
+      const logText =
+        customErrorText ||
+        (runner?.logs?.length ? runner.logs.join('\n') : 'Runtime error in Next.js component');
+      const res = await api<{
+        ok: boolean;
+        patchApplied: boolean;
+        fixedFile: string;
+        explanation: string;
+      }>(`/api/projects/${projectId}/auto-debug`, {
+        method: 'POST',
+        body: JSON.stringify({ errorMessage: logText, filePath: matchedFile ?? undefined }),
+      });
+
+      if (res.ok) {
+        setAutoDebugNotice({
+          ok: true,
+          msg: res.explanation,
+          file: res.fixedFile,
+        });
+        onChanged();
+        if (res.patchApplied) {
+          setReloadKey((k) => k + 1);
+        }
+      }
+    } catch (err: any) {
+      setAutoDebugNotice({
+        ok: false,
+        msg: err?.message || 'Gagal menjalankan auto-debug',
+      });
+    } finally {
+      setAutoDebugging(false);
+    }
+  };
 
   const fetchRunnerStatus = useCallback(async () => {
     try {
@@ -349,15 +410,46 @@ export default function VisualEditor({
 
       {/* Terminal Log Drawer (Collapsible) */}
       {showLogs && viewMode === 'live-vps' && (
-        <div className="rounded-md border border-border bg-slate-950 p-3 font-mono text-xs text-slate-200">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-800 mb-2">
-            <span className="flex items-center gap-1.5 font-semibold text-slate-300">
-              <Terminal className="h-3.5 w-3.5 text-primary" /> Konsol Node.js / Next.js Runner
-            </span>
-            <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-slate-400" onClick={() => setShowLogs(false)}>
-              <X className="h-3.5 w-3.5" />
-            </Button>
+        <div className="rounded-xl border border-white/[0.08] bg-slate-950 p-3 font-mono text-xs text-slate-200 shadow-xl">
+          <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-800 mb-2">
+            <div className="flex items-center gap-2">
+              <span className="flex items-center gap-1.5 font-semibold text-slate-300">
+                <Terminal className="h-3.5 w-3.5 text-primary" /> Konsol Node.js / Next.js Runner
+              </span>
+              <span className="rounded-full bg-emerald-500/20 text-emerald-400 px-2 py-0.5 text-[10px] font-semibold">
+                Live Telemetri VPS
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                onClick={() => handleAutoDebug()}
+                disabled={autoDebugging}
+                className="h-7 text-xs bg-amber-600 hover:bg-amber-500 text-black font-semibold shadow-sm"
+                title="Analisis dan perbaiki error build/runtime otomatis dengan AI"
+              >
+                <Wand2 className="mr-1 h-3.5 w-3.5" />
+                {autoDebugging ? 'AI Sedang Memperbaiki…' : 'Perbaiki Error Ini Otomatis dengan AI'}
+              </Button>
+              <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-slate-400" onClick={() => setShowLogs(false)}>
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </div>
           </div>
+          {autoDebugNotice && (
+            <div
+              className={`mb-2 rounded-lg p-2 text-xs ${
+                autoDebugNotice.ok
+                  ? 'bg-emerald-950/60 border border-emerald-800 text-emerald-300'
+                  : 'bg-destructive/20 border border-destructive/40 text-destructive'
+              }`}
+            >
+              <strong>[Auto-Debug AI]:</strong> {autoDebugNotice.msg}
+              {autoDebugNotice.file && (
+                <span className="ml-2 font-mono text-[10px] text-muted-foreground">({autoDebugNotice.file})</span>
+              )}
+            </div>
+          )}
           <pre className="max-h-40 overflow-auto whitespace-pre-wrap leading-relaxed text-[11px] text-slate-400">
             {runner?.logs?.length ? runner.logs.join('\n') : '(Belum ada log server)'}
           </pre>
@@ -368,17 +460,35 @@ export default function VisualEditor({
       {viewMode === 'instant' && (
         <div className="rounded-md border border-border bg-card p-3">
           {selection ? (
-            <div className="mb-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
-              <span className="truncate">
-                Dipilih: <code className="rounded bg-muted px-1">&lt;{selection.tag}&gt;</code> {selection.text && `"${selection.text.slice(0, 50)}"`}
-              </span>
-              <button
-                type="button"
-                onClick={() => setSelection(null)}
-                className="inline-flex items-center gap-1 text-primary hover:underline"
-              >
-                <X className="h-3 w-3" /> Batal pilih
-              </button>
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2 truncate">
+                <span className="truncate">
+                  Dipilih: <code className="rounded bg-muted px-1">&lt;{selection.tag}&gt;</code> {selection.text && `"${selection.text.slice(0, 40)}"`}
+                </span>
+                {matchedFile && (
+                  <span className="rounded bg-primary/10 border border-primary/25 px-2 py-0.5 text-[11px] text-primary font-mono">
+                    Komponen: {matchedFile}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {matchedFile && onSelectFile && (
+                  <button
+                    type="button"
+                    onClick={() => onSelectFile(matchedFile)}
+                    className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline font-semibold"
+                  >
+                    Buka File di Code Explorer →
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setSelection(null)}
+                  className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3 w-3" /> Batal pilih
+                </button>
+              </div>
             </div>
           ) : (
             <p className="mb-2 text-xs text-muted-foreground">Aktifkan “Pilih elemen visual”, klik bagian preview, lalu tulis perubahan. Tanpa pilihan, perubahan berlaku global.</p>

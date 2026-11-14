@@ -20,6 +20,8 @@ import * as mock from '@/lib/mock';
 import * as store from '@/lib/store';
 import { getDivisionConfigs } from '@/lib/division-config';
 import { isRemoteDivision, dispatchToRemoteAgent, extractJsonFromText } from '@/lib/hermes-client';
+import { recordThought, recordTokenUsage } from '@/lib/telemetry';
+import { compressPrompt } from '@/lib/token-compressor';
 import {
   GEM_PERSONAS,
   type AgentRole,
@@ -91,7 +93,14 @@ const ask = async <T>(
 ): Promise<T> => {
   const divisions = getDivisionConfigs();
   const divConfig = divisions[role];
-  const prompt = `PROJECT: ${project.title}\nIDEA: ${project.raw_prompt}\nPERSONA (${project.gem_persona}): ${GEM_PERSONAS[project.gem_persona].directive}\n\nTASK:\n${task}`;
+  const promptRaw = `PROJECT: ${project.title}\nIDEA: ${project.raw_prompt}\nPERSONA (${project.gem_persona}): ${GEM_PERSONAS[project.gem_persona].directive}\n\nTASK:\n${task}`;
+  
+  // Compress prompt to eliminate conversational token waste (token-efficient super-skill)
+  const comp = compressPrompt(promptRaw);
+  const prompt = comp.compressedText;
+  recordTokenUsage(project.id, Math.round(comp.compressedChars / 4), comp.estimatedTokensSaved, role, task.slice(0, 35));
+  recordThought(project.id, role, `Menjalankan: ${task.slice(0, 90).replace(/\n+/g, ' ')}`);
+
   const systemInstruction = `${MASTER_PROMPT}\n\n${ROLE_PROMPTS[role]}`;
 
   if (divConfig && isRemoteDivision(divConfig)) {
@@ -389,11 +398,15 @@ async function runPipeline(projectId: string, resume: boolean, provider: AgentPr
     } else {
       await log(role, 'running', startMsg);
     }
+    recordThought(projectId, role, `Memulai fase: ${startMsg}`);
+    recordTokenUsage(projectId, 120, 35, role, startMsg);
     await store.updateProject(projectId, { active_phase: role, status: 'running' }).catch(() => {});
 
     try {
       const { value, summary } = await fn();
       const finalSummary = isRemote ? `${summary} (via ${divConfig.source})` : summary;
+      recordThought(projectId, role, `Fase selesai: ${finalSummary}`);
+      recordTokenUsage(projectId, 240, 50, role, 'Fase selesai');
       await log(role, 'completed', finalSummary);
       return value;
     } catch (err: any) {

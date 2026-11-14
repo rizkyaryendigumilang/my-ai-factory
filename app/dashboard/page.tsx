@@ -3,7 +3,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Building2, Check, Copy, ExternalLink, Plus, Settings, ShieldCheck, SlidersHorizontal, Trash2 } from 'lucide-react';
+import { Building2, Check, Copy, ExternalLink, Plus, Rocket, Settings, ShieldCheck, SlidersHorizontal, Trash2, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { officeActivity } from '@/lib/activity';
 import { api, useProjectState } from '@/lib/use-project';
@@ -15,8 +15,10 @@ import LiveNotebook from './components/LiveNotebook';
 import VirtualOffice from './components/VirtualOffice';
 import ProjectSetup from './components/ProjectSetup';
 import VisualEditor from './components/VisualEditor';
+import MarketingKitPanel from './components/MarketingKitPanel';
 import DivisionAgentModal from '../office/components/DivisionAgentModal';
 import SettingsModal from '@/components/SettingsModal';
+import WarRoomModal from '@/components/WarRoomModal';
 
 const TABS = [
   ['setup', 'Spesifikasi & Setup'],
@@ -25,6 +27,7 @@ const TABS = [
   ['code', 'Direktori Kode'],
   ['preview', 'Sandbox & Edit Visual'],
   ['export', 'Ekspor & Versi'],
+  ['launch', 'Marketing & Launch Kit'],
 ] as const;
 type Tab = (typeof TABS)[number][0];
 
@@ -48,6 +51,7 @@ function Workspace() {
   const [copiedId, setCopiedId] = useState(false);
   const [showDivisionModal, setShowDivisionModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showWarRoom, setShowWarRoom] = useState(false);
   const [stepLoading, setStepLoading] = useState(false);
   const { state, error, loading, refresh } = useProjectState(activeId);
 
@@ -182,6 +186,17 @@ function Workspace() {
               <Building2 className="h-3.5 w-3.5 text-primary" />
               <span className="hidden sm:inline">Virtual Office</span>
             </Link>
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => setShowWarRoom(true)}
+            className="hidden md:inline-flex h-8 items-center gap-1.5 border-amber-500/30 text-amber-300 hover:bg-amber-500/10"
+            title="Panggil Rapat Darurat Meja Bundar ke-6 Spesialis AI (War Room)"
+          >
+            <Users className="h-3.5 w-3.5 text-amber-400" />
+            <span>War Room</span>
           </Button>
           <Button
             type="button"
@@ -378,6 +393,16 @@ function Workspace() {
                     <div className="flex items-center gap-2.5">
                       <Button
                         size="sm"
+                        variant="outline"
+                        className="text-xs h-8.5 px-3 border-amber-500/40 text-amber-300 hover:bg-amber-500/10"
+                        onClick={() => setShowWarRoom(true)}
+                        title="Panggil seluruh 6 spesialis AI ke ruang rapat darurat sebelum memutuskan"
+                      >
+                        <Users className="h-3.5 w-3.5 mr-1 text-amber-400" />
+                        Panggil Rapat Sentral
+                      </Button>
+                      <Button
+                        size="sm"
                         disabled={stepLoading}
                         className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs h-8.5 px-3.5 shadow-sm"
                         onClick={() => handleApproveGate(false)}
@@ -408,7 +433,7 @@ function Workspace() {
                 )}
                 {tab === 'monitor' && (
                   <div className="grid h-full min-h-[480px] gap-5 lg:grid-cols-2">
-                    <LiveNotebook logs={state.logs} running={running} />
+                    <LiveNotebook logs={state.logs} running={running} projectId={state.project.id} />
                     <div className="space-y-3">
                       <div className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-border bg-card p-3 text-xs">
                         <div className="flex items-center gap-2.5">
@@ -472,6 +497,7 @@ function Workspace() {
                     files={state.files}
                     busy={running}
                     onChanged={refresh}
+                    onSelectFile={() => setTab('code')}
                   />
                 )}
                 {tab === 'export' && (
@@ -483,6 +509,9 @@ function Workspace() {
                     busy={running}
                     onChanged={refresh}
                   />
+                )}
+                {tab === 'launch' && (
+                  <MarketingKitPanel projectId={state.project.id} />
                 )}
               </div>
             </>
@@ -498,6 +527,13 @@ function Workspace() {
       <SettingsModal
         isOpen={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
+      />
+
+      <WarRoomModal
+        isOpen={showWarRoom}
+        onClose={() => setShowWarRoom(false)}
+        projectId={state?.project?.id ?? ''}
+        projectTitle={state?.project?.title ?? ''}
       />
     </div>
   );

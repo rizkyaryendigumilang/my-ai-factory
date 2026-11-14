@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import * as store from '@/lib/store';
+import { getTelemetry } from '@/lib/telemetry';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -18,6 +19,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     async start(controller) {
       let lastLogCount = 0;
       let lastFileCount = 0;
+      let lastTelemetryUpdated = '';
 
       const send = (event: string, data: any) => {
         if (closed) return;
@@ -34,6 +36,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         lastLogCount = initial.logs.length;
         lastFileCount = initial.files.length;
         send('state', initial);
+
+        const initialTelem = getTelemetry(id);
+        lastTelemetryUpdated = initialTelem.lastUpdated;
+        send('telemetry', initialTelem);
 
         // shortcut: jika proyek sudah berstatus selesai/gagal, tidak perlu memutar interval polling disk
         if (initial.project.status === 'completed' || initial.project.status === 'failed') {
@@ -54,6 +60,12 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
             clearInterval(interval);
             controller.close();
             return;
+          }
+
+          const currentTelem = getTelemetry(id);
+          if (currentTelem.lastUpdated !== lastTelemetryUpdated) {
+            lastTelemetryUpdated = currentTelem.lastUpdated;
+            send('telemetry', currentTelem);
           }
 
           if (current.logs.length !== lastLogCount || current.files.length !== lastFileCount) {
