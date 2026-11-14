@@ -34,8 +34,21 @@
         }
     }
 
-    function getUsageUrl() {
-        return window.location.pathname.startsWith('/ai-factory') ? '/ai-factory/api-usage' : '/api-usage';
+    let _activeUsageUrl = null;
+
+    function getCandidateUrls() {
+        const list = [];
+        if (_activeUsageUrl) list.push(_activeUsageUrl);
+        const isAiFactory = window.location.pathname.indexOf('/ai-factory') !== -1 ||
+            (document.referrer && document.referrer.indexOf('/ai-factory') !== -1);
+        if (isAiFactory) {
+            list.push('/ai-factory/api-usage');
+            list.push('/api-usage');
+        } else {
+            list.push('/api-usage');
+            list.push('/ai-factory/api-usage');
+        }
+        return Array.from(new Set(list));
     }
 
     window.toggleApiUsage = function() {
@@ -67,21 +80,37 @@
     window.stopApiUsagePolling = stopPolling;
 
     async function fetchUsage() {
-        try {
-            const url = getUsageUrl();
-            const signal = safeTimeoutSignal(15000);
-            const opts = signal ? { signal: signal } : {};
-            const res = await fetch(url, opts);
-            if (!res.ok) throw new Error('HTTP ' + res.status);
-            const data = await res.json();
-            if (data.error && !data.providers?.length) {
-                setDot(false);
-                renderEmpty(data.error);
-                return;
+        const candidates = getCandidateUrls();
+        let success = false;
+
+        for (const url of candidates) {
+            try {
+                const signal = safeTimeoutSignal(6000);
+                const opts = signal ? { signal: signal } : {};
+                const res = await fetch(url, opts);
+                if (!res.ok) continue;
+                const contentType = res.headers.get('content-type') || '';
+                if (!contentType.includes('application/json')) continue; // Skip HTML responses
+                const data = await res.json();
+                if (data && (data.providers || data.error)) {
+                    _activeUsageUrl = url;
+                    if (data.error && !data.providers?.length) {
+                        setDot(false);
+                        renderEmpty(data.error);
+                        success = true;
+                        break;
+                    }
+                    setDot(true);
+                    render(data);
+                    success = true;
+                    break;
+                }
+            } catch (err) {
+                // Try next candidate
             }
-            setDot(true);
-            render(data);
-        } catch(e) {
+        }
+
+        if (!success) {
             setDot(false);
             renderEmpty('Connection error');
         }

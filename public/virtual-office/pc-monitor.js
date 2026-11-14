@@ -29,8 +29,21 @@
         }
     }
 
-    function getMetricsUrl() {
-        return window.location.pathname.startsWith('/ai-factory') ? '/ai-factory/pc-metrics' : '/pc-metrics';
+    let _activeMetricsUrl = null;
+
+    function getCandidateUrls() {
+        const list = [];
+        if (_activeMetricsUrl) list.push(_activeMetricsUrl);
+        const isAiFactory = window.location.pathname.indexOf('/ai-factory') !== -1 ||
+            (document.referrer && document.referrer.indexOf('/ai-factory') !== -1);
+        if (isAiFactory) {
+            list.push('/ai-factory/pc-metrics');
+            list.push('/pc-metrics');
+        } else {
+            list.push('/pc-metrics');
+            list.push('/ai-factory/pc-metrics');
+        }
+        return Array.from(new Set(list));
     }
 
     window.togglePcMonitor = function() {
@@ -62,16 +75,31 @@
     window.stopPcPolling = stopPolling;
 
     async function fetchMetrics() {
-        try {
-            const url = getMetricsUrl();
-            const signal = safeTimeoutSignal(5000);
-            const opts = signal ? { signal: signal } : {};
-            const res = await fetch(url, opts);
-            if (!res.ok) throw new Error('HTTP ' + res.status);
-            const data = await res.json();
-            _online = true;
-            updateUI(data);
-        } catch(e) {
+        const candidates = getCandidateUrls();
+        let success = false;
+
+        for (const url of candidates) {
+            try {
+                const signal = safeTimeoutSignal(4000);
+                const opts = signal ? { signal: signal } : {};
+                const res = await fetch(url, opts);
+                if (!res.ok) continue;
+                const contentType = res.headers.get('content-type') || '';
+                if (!contentType.includes('application/json')) continue; // Skip HTML responses like Open WebUI SPA fallback
+                const data = await res.json();
+                if (data && (data.cpu || data.memory)) {
+                    _activeMetricsUrl = url;
+                    _online = true;
+                    updateUI(data);
+                    success = true;
+                    break;
+                }
+            } catch (err) {
+                // Try next candidate
+            }
+        }
+
+        if (!success) {
             _online = false;
             setStatusDot(false);
         }

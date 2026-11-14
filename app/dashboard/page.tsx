@@ -134,19 +134,24 @@ function Workspace() {
   };
 
   return (
-    <div className="flex h-screen flex-col">
-      <header className="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.08] bg-card/80 backdrop-blur-md backdrop-saturate-150 supports-[backdrop-filter]:bg-card/65 px-4 py-2.5">
-        <div className="flex items-center gap-3">
-          <Link href="/ai-factory" className="flex items-center gap-2 font-semibold">
-            <span className="flex h-7 w-7 items-center justify-center rounded-sm bg-primary text-xs font-bold text-primary-foreground">AF</span>
-            My AI Factory
+    <div className="flex h-screen flex-col bg-background text-foreground antialiased selection:bg-primary/25 selection:text-foreground">
+      <header className="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.07] bg-[#080B11]/85 backdrop-blur-xl px-4 py-2.5">
+        <div className="flex items-center gap-3.5">
+          <Link href="/ai-factory" className="flex items-center gap-2.5 font-semibold group cursor-pointer">
+            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground shadow-sm transition-transform duration-100 ease-out group-hover:scale-105 active:scale-95">
+              AF
+            </span>
+            <div className="flex flex-col">
+              <span className="text-sm font-bold tracking-tight text-foreground leading-none">My AI Factory</span>
+              <span className="text-[10px] font-medium text-muted-foreground tracking-wider uppercase mt-0.5">Software House</span>
+            </div>
           </Link>
           {projects.length > 0 && (
             <select
               aria-label="Pilih proyek"
               value={activeId ?? ''}
               onChange={(e) => e.target.value && router.push(`/dashboard?project=${e.target.value}`)}
-              className="h-8 max-w-[180px] rounded-sm border border-input bg-background px-2 text-xs md:hidden"
+              className="h-8 max-w-[190px] rounded-md border border-white/[0.1] bg-card px-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary md:hidden"
             >
               {projects.map((p) => (
                 <option key={p.id} value={p.id}>{p.title} ({STATUS[p.status].label})</option>
@@ -157,83 +162,90 @@ function Workspace() {
 
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           {health && (
-            <>
-              <span className="hidden rounded-sm border border-border bg-background px-2 py-1 sm:inline">
-                Engine: {health.ai === 'gemini' ? 'Gemini' : 'Demo Offline'}
+            <div className="hidden lg:flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1 text-[11px] font-medium text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                <span>{health.ai === 'gemini' ? 'Gemini AI' : 'Demo'}</span>
               </span>
-              <span className="hidden rounded-sm border border-border bg-background px-2 py-1 sm:inline">
-                Store: {health.store === 'pocketbase' ? 'PocketBase' : 'Local JSON'}
-              </span>
-              <span className="rounded-sm border border-border bg-background px-2 py-1">
-                Paket: {health.plan === 'pro' ? 'Pro' : 'Free'}
-              </span>
-            </>
+              <span className="text-white/20">·</span>
+              <span>{health.store === 'pocketbase' ? 'PocketBase' : 'Local'}</span>
+              <span className="text-white/20">·</span>
+              <span className="text-primary font-semibold">{health.plan === 'pro' ? 'Pro' : 'Free'}</span>
+            </div>
           )}
-          <Button asChild size="sm" variant="outline">
+          <Button asChild size="sm" variant="outline" className="h-8">
             <Link
               href={activeId ? `/office?project=${activeId}` : '/office'}
               className="inline-flex items-center gap-1.5"
               title="Buka Virtual Office Layar Penuh"
             >
               <Building2 className="h-3.5 w-3.5 text-primary" />
-              <span className="hidden sm:inline">Virtual Office Full Screen</span>
+              <span className="hidden sm:inline">Virtual Office</span>
             </Link>
           </Button>
-          <button
+          <Button
             type="button"
+            size="sm"
+            variant="outline"
             onClick={() => setShowDivisionModal(true)}
-            className="hidden items-center gap-1.5 rounded-sm border border-border bg-background px-2.5 py-1 text-xs text-muted-foreground transition-[transform,background-color,border-color,color] duration-100 ease-out hover:border-primary hover:text-foreground md:inline-flex active:scale-[0.97]"
+            className="hidden md:inline-flex h-8 items-center gap-1.5"
             title="Pilih & Konfigurasi Agen VPS untuk masing-masing Divisi Kantor"
           >
             <SlidersHorizontal className="h-3.5 w-3.5 text-primary" />
             <span>Pilih Agen VPS</span>
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            size="sm"
+            variant="outline"
             onClick={() => setShowSettingsModal(true)}
-            className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-background px-2.5 py-1 text-xs text-muted-foreground transition-[transform,background-color,border-color,color] duration-100 ease-out hover:border-primary hover:text-foreground active:scale-[0.97]"
+            className="inline-flex h-8 items-center gap-1.5"
             title="Buka Pengaturan Pabrik & Integrasi Sistem (AI, VPS, GitHub)"
           >
             <Settings className="h-3.5 w-3.5 text-primary" />
             <span className="hidden sm:inline">Pengaturan</span>
-          </button>
-          <a
-            href="https://43.156.236.102:8444/?profile=default"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hidden items-center gap-1 rounded-sm border border-border bg-background px-2 py-1 text-xs text-muted-foreground transition-colors hover:border-primary hover:text-foreground md:inline-flex"
-            title="Buka Hermes Agent VPS Dashboard Langsung (Port 8444)"
-          >
-            <span>Hermes VPS</span>
-            <ExternalLink className="h-3 w-3 opacity-60" />
-          </a>
-          <Button asChild size="sm">
-            <Link href="/"><Plus className="mr-1 h-4 w-4" /> Proyek Baru</Link>
+          </Button>
+          <Button asChild size="sm" variant="outline" className="hidden lg:inline-flex h-8">
+            <a
+              href="https://43.156.236.102:8444/?profile=default"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1"
+              title="Buka Hermes Agent VPS Dashboard Langsung (Port 8444)"
+            >
+              <span>Hermes VPS</span>
+              <ExternalLink className="h-3 w-3 opacity-60" />
+            </a>
+          </Button>
+          <Button asChild size="sm" className="h-8">
+            <Link href="/"><Plus className="mr-1 h-3.5 w-3.5" /> Proyek Baru</Link>
           </Button>
         </div>
       </header>
 
       <div className="flex min-h-0 flex-1">
-        <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-card/60 md:flex">
-          <div className="flex items-center justify-between border-b border-border px-4 py-2.5 text-xs text-muted-foreground">
-            <span className="font-semibold">Daftar Proyek</span>
-            <span>{projects.length}</span>
+        <aside className="hidden w-64 shrink-0 flex-col border-r border-white/[0.07] bg-[#0B0F19]/70 backdrop-blur-md md:flex">
+          <div className="flex items-center justify-between border-b border-white/[0.07] px-4 py-2.5 text-xs text-muted-foreground">
+            <span className="font-semibold text-foreground tracking-tight">Daftar Proyek</span>
+            <span className="rounded-full bg-white/[0.06] px-2 py-0.5 text-[11px] font-medium">{projects.length}</span>
           </div>
           <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto p-2">
             {projects.length === 0 && listLoaded && (
-              <li className="px-2 py-6 text-center text-sm text-muted-foreground">Belum ada proyek.</li>
+              <li className="px-2 py-6 text-center text-xs text-muted-foreground">Belum ada proyek.</li>
             )}
             {projects.map((p) => (
               <li key={p.id} className="group relative">
                 <Link
                   href={`/dashboard?project=${p.id}`}
-                  className={`block rounded-sm border px-3 py-2 pr-14 text-sm transition-colors ${
-                    p.id === activeId ? 'border-primary bg-primary/10 text-foreground' : 'border-transparent hover:border-border hover:bg-secondary'
+                  className={`block rounded-lg border px-3 py-2 pr-12 text-sm transition-all duration-150 ${
+                    p.id === activeId
+                      ? 'border-primary/40 bg-primary/10 text-foreground font-medium shadow-sm'
+                      : 'border-transparent text-muted-foreground hover:border-white/[0.06] hover:bg-white/[0.04] hover:text-foreground'
                   }`}
                 >
-                  <span className="block truncate font-medium">{p.title}</span>
-                  <span className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                    <span className={`inline-block h-1.5 w-1.5 rounded-sm ${STATUS[p.status].dot}`} />
+                  <span className="block truncate font-medium text-xs text-foreground leading-snug">{p.title}</span>
+                  <span className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                    <span className={`inline-block h-1.5 w-1.5 rounded-full ${STATUS[p.status].dot}`} />
                     {STATUS[p.status].label}
                   </span>
                 </Link>
@@ -241,7 +253,7 @@ function Workspace() {
                   <button
                     type="button"
                     onClick={() => remove(p)}
-                    className="absolute right-1.5 top-2 rounded-sm bg-destructive px-2 py-1 text-[11px] font-semibold text-destructive-foreground"
+                    className="absolute right-1.5 top-2 rounded-md bg-destructive px-2 py-1 text-[11px] font-semibold text-destructive-foreground transition-transform active:scale-95"
                   >
                     Hapus?
                   </button>
@@ -250,7 +262,7 @@ function Workspace() {
                     type="button"
                     aria-label={`Hapus ${p.title}`}
                     onClick={() => setConfirmDeleteId(p.id)}
-                    className="absolute right-2 top-2.5 rounded-sm p-1 text-muted-foreground opacity-0 hover:bg-secondary hover:text-foreground focus:opacity-100 group-hover:opacity-100"
+                    className="absolute right-2 top-2 rounded-md p-1.5 text-muted-foreground opacity-0 hover:bg-white/[0.08] hover:text-foreground focus:opacity-100 group-hover:opacity-100 transition-opacity"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
@@ -282,12 +294,12 @@ function Workspace() {
             <p className="p-8 text-center text-sm text-muted-foreground">{loading ? 'Memuat proyek…' : ''}</p>
           ) : (
             <>
-              <div className="border-b border-border bg-card/40 px-4 pt-3">
-                <div className="flex flex-wrap items-center justify-between gap-2 pb-2">
-                  <div className="flex min-w-0 items-center gap-2.5">
-                    <h1 className="truncate text-2xl font-bold tracking-tight">{state.project.title}</h1>
-                    <span className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-secondary px-2 py-0.5 text-xs font-medium text-foreground">
-                      <span className={`inline-block h-2 w-2 rounded-sm ${STATUS[state.project.status].dot}`} />
+              <div className="border-b border-white/[0.07] bg-[#0B0F19]/60 px-5 pt-4 pb-3 backdrop-blur-md">
+                <div className="flex flex-wrap items-center justify-between gap-3 pb-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <h1 className="truncate text-xl font-bold tracking-tight text-foreground">{state.project.title}</h1>
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.04] px-2.5 py-0.5 text-xs font-medium text-foreground">
+                      <span className={`inline-block h-1.5 w-1.5 rounded-full ${STATUS[state.project.status].dot}`} />
                       {STATUS[state.project.status].label}
                     </span>
                     <button
@@ -297,11 +309,11 @@ function Workspace() {
                         setCopiedId(true);
                         setTimeout(() => setCopiedId(false), 1500);
                       }}
-                      className="inline-flex items-center gap-1 rounded-sm border border-border/80 bg-background px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                      className="inline-flex items-center gap-1 rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-0.5 text-xs text-muted-foreground transition-all hover:bg-white/[0.07] hover:text-foreground active:scale-95"
                       title="Salin ID Proyek"
                     >
                       {copiedId ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
-                      <span>{copiedId ? 'Disalin' : `#${state.project.id.slice(0, 8)}`}</span>
+                      <span className="font-mono text-[11px]">{copiedId ? 'Disalin' : `#${state.project.id.slice(0, 8)}`}</span>
                     </button>
                   </div>
                   <div className="md:hidden">
@@ -315,19 +327,21 @@ function Workspace() {
                   </div>
                 </div>
 
-                <nav className="-mb-px flex w-full gap-1 overflow-x-auto" aria-label="Tahap proyek">
+                <nav className="flex w-full gap-1 overflow-x-auto p-1 bg-black/35 rounded-lg border border-white/[0.06]" aria-label="Tahap proyek">
                   {TABS.map(([k, label], idx) => (
                     <button
                       key={k}
                       type="button"
                       onClick={() => setTab(k)}
                       aria-current={tab === k ? 'page' : undefined}
-                      className={`whitespace-nowrap border-b-2 px-3 py-2 text-sm transition-colors ${
-                        tab === k ? 'border-primary font-semibold text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'
+                      className={`flex items-center gap-1.5 whitespace-nowrap rounded-md px-3.5 py-1.5 text-xs font-medium transition-all duration-100 ${
+                        tab === k
+                          ? 'bg-white/[0.1] text-foreground font-semibold shadow-sm border border-white/[0.08]'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-white/[0.04]'
                       }`}
                     >
                       <span>{label}</span>
-                      <kbd className="ml-1.5 hidden rounded border border-border/80 px-1 py-0.5 text-[10px] opacity-60 sm:inline-block">
+                      <kbd className="hidden rounded bg-black/40 border border-white/[0.08] px-1 py-0.2 text-[10px] opacity-60 sm:inline-block">
                         {idx + 1}
                       </kbd>
                     </button>
@@ -335,16 +349,16 @@ function Workspace() {
                 </nav>
               </div>
 
-              <div className="min-h-0 flex-1 overflow-y-auto p-4 space-y-4">
+              <div className="min-h-0 flex-1 overflow-y-auto p-5 space-y-4">
                 {state.project.approval_gate && (
-                  <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3.5 text-xs text-amber-900 dark:text-amber-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-start gap-2.5">
-                      <div className="mt-0.5 rounded bg-amber-500/20 p-1 text-amber-600 dark:text-amber-400">
-                        <ShieldCheck className="h-4 w-4" />
+                  <div className="rounded-xl border border-amber-500/35 bg-[#121826] p-4 text-xs shadow-lg flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 rounded-lg bg-amber-500/15 border border-amber-500/30 p-2 text-amber-400">
+                        <ShieldCheck className="h-5 w-5" />
                       </div>
                       <div>
-                        <div className="font-semibold text-sm">
-                          🛡️ Otorisasi Kiky Diperlukan: {
+                        <div className="font-semibold text-sm text-amber-200 tracking-tight">
+                          Otorisasi Kiky Diperlukan: {
                             state.project.approval_gate === 'gate_pm'
                               ? 'Gate 1 — Spesifikasi & User Stories Selesai'
                               : state.project.approval_gate === 'gate_arch'
@@ -352,7 +366,7 @@ function Workspace() {
                               : 'Gate 3 — Keamanan OWASP & QA Plan Selesai'
                           }
                         </div>
-                        <p className="mt-0.5 text-muted-foreground text-[11px]">
+                        <p className="mt-1 text-muted-foreground text-xs leading-relaxed max-w-2xl">
                           {state.project.approval_gate === 'gate_pm'
                             ? 'Dokumen PRD & BRD siap. Anda dapat memeriksa tab "Dokumen & Diagram" sebelum mengizinkan System Analyst merancang ERD.'
                             : state.project.approval_gate === 'gate_arch'
@@ -361,24 +375,24 @@ function Workspace() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2.5">
                       <Button
                         size="sm"
                         disabled={stepLoading}
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs h-8"
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs h-8.5 px-3.5 shadow-sm"
                         onClick={() => handleApproveGate(false)}
                       >
                         <Check className="h-3.5 w-3.5 mr-1" />
-                        Setujui &amp; Lanjut Tahap Berikutnya
+                        Setujui &amp; Lanjut
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
                         disabled={stepLoading}
-                        className="text-xs h-8 border-amber-500/40 hover:bg-amber-500/10"
+                        className="text-xs h-8.5 px-3 border-amber-500/40 text-amber-300 hover:bg-amber-500/10"
                         onClick={() => handleApproveGate(true)}
                       >
-                        Setujui &amp; Auto-Pilot Penuh
+                        Auto-Pilot Penuh
                       </Button>
                     </div>
                   </div>

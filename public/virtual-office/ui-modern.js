@@ -91,42 +91,60 @@
         if (!toolbar || toolbar.dataset.modernized) return;
         toolbar.dataset.modernized = 'true';
 
+        var dashboardBtn = document.getElementById('btn-back-dashboard');
+        var hermesBtn = document.getElementById('btn-hermes-vps');
         var settingsBtn = document.getElementById('btn-main-menu');
         var editBtn = document.getElementById('btn-edit-office');
         var agentBtn = document.getElementById('btn-agent-settings');
         var saveBtn = document.getElementById('btn-save-edits');
         var undoBtn = document.getElementById('btn-undo-edit');
-        var projectBtn = toolbar.querySelector('button[onclick*="openProjectsManager"]');
-        var resetBtn = toolbar.querySelector('button[onclick*="resetCamera"]');
+        var projectBtn = document.getElementById('btn-projects') || toolbar.querySelector('button[onclick*="openProjectsManager"]');
+        var modelsBtn = document.getElementById('btn-models') || toolbar.querySelector('a[href*="models.html"]') || toolbar.querySelector('button[onclick*="openModelsPage"]');
+        var providersBtn = document.getElementById('btn-providers') || toolbar.querySelector('a[href*="providers.html"]') || toolbar.querySelector('button[onclick*="openProvidersPage"]');
+        var cronBtn = document.getElementById('btn-cron') || toolbar.querySelector('a[href*="cron.html"]') || toolbar.querySelector('button[onclick*="openCronPage"]');
+        var resetBtn = document.getElementById('btn-reset-cam') || toolbar.querySelector('button[onclick*="resetCamera"]');
         var expandBtn = document.getElementById('btn-expand-all');
         var minimizeBtn = document.getElementById('btn-minimize-all');
         var smsBtn = document.getElementById('sms-toggle');
         var browserBtn = document.getElementById('browser-toggle');
-        var modelsLink = toolbar.querySelector(':scope > a[href*="models.html"]');
-        var providersLink = toolbar.querySelector(':scope > a[href*="providers.html"]');
-        var cronLink = toolbar.querySelector(':scope > a[href*="cron.html"]');
 
+        if (dashboardBtn) dashboardBtn.textContent = '← Dashboard';
+        if (hermesBtn) hermesBtn.textContent = 'Hermes VPS ↗';
         if (settingsBtn) settingsBtn.textContent = '⚙️ Settings';
         if (editBtn) editBtn.textContent = '✏️ Edit Office';
         if (agentBtn) agentBtn.textContent = '👥 Agents';
         if (projectBtn) projectBtn.textContent = '📋 Projects';
+        if (modelsBtn && modelsBtn.querySelector && modelsBtn.querySelector('button')) {
+            modelsBtn.querySelector('button').textContent = '⚙️ Models';
+        } else if (modelsBtn) {
+            modelsBtn.textContent = '⚙️ Models';
+        }
+        if (providersBtn && providersBtn.querySelector && providersBtn.querySelector('button')) {
+            providersBtn.querySelector('button').textContent = '🧩 Providers';
+        } else if (providersBtn) {
+            providersBtn.textContent = '🧩 Providers';
+        }
+        if (cronBtn && cronBtn.querySelector && cronBtn.querySelector('button')) {
+            cronBtn.querySelector('button').textContent = '⏰ Cron';
+        } else if (cronBtn) {
+            cronBtn.textContent = '⏰ Cron';
+        }
         if (expandBtn) expandBtn.textContent = '💬 Expand';
         if (minimizeBtn) minimizeBtn.textContent = '🗨️ Minimize';
         if (resetBtn) resetBtn.textContent = '🔍 Reset View';
         if (smsBtn) smsBtn.textContent = '📞 SMS';
         if (browserBtn) browserBtn.textContent = '🌐 Browser';
-        if (modelsLink && modelsLink.querySelector('button')) modelsLink.querySelector('button').textContent = '⚙️ Models';
-        if (providersLink && providersLink.querySelector('button')) providersLink.querySelector('button').textContent = '🧩 Providers';
-        if (cronLink && cronLink.querySelector('button')) cronLink.querySelector('button').textContent = '⏰ Cron';
 
         [
+            [dashboardBtn, '← Dash'],
+            [hermesBtn, 'Hermes ↗'],
             [settingsBtn, '⚙️ Settings'],
             [editBtn, '✏️ Edit'],
             [agentBtn, '👥 Agents'],
             [projectBtn, '📋 Projects'],
-            [modelsLink && modelsLink.querySelector('button'), '⚙️ Models'],
-            [providersLink && providersLink.querySelector('button'), '🧩 Providers'],
-            [cronLink && cronLink.querySelector('button'), '⏰ Cron'],
+            [modelsBtn && (modelsBtn.querySelector ? modelsBtn.querySelector('button') || modelsBtn : modelsBtn), '⚙️ Models'],
+            [providersBtn && (providersBtn.querySelector ? providersBtn.querySelector('button') || providersBtn : providersBtn), '🧩 Providers'],
+            [cronBtn && (cronBtn.querySelector ? cronBtn.querySelector('button') || cronBtn : cronBtn), '⏰ Cron'],
             [browserBtn, '🌐 Browser'],
             [smsBtn, '📞 SMS'],
             [expandBtn, '💬 Expand'],
@@ -177,7 +195,7 @@
         themeBtn.id = 'btn-ui-theme';
         themeBtn.type = 'button';
         themeBtn.addEventListener('click', toggleTheme);
-        [settingsBtn, editBtn, agentBtn, projectBtn, modelsLink, providersLink, cronLink, browserBtn, smsBtn, expandBtn, minimizeBtn, resetBtn, themeBtn].forEach(function (el) {
+        [dashboardBtn, hermesBtn, settingsBtn, editBtn, agentBtn, projectBtn, modelsBtn, providersBtn, cronBtn, expandBtn, minimizeBtn, resetBtn, themeBtn].forEach(function (el) {
             if (el) primary.appendChild(el);
         });
 
@@ -200,10 +218,6 @@
                     }
                 }
             });
-            var innerBtn = link.querySelector('button');
-            if (innerBtn) {
-                innerBtn.style.pointerEvents = 'none';
-            }
         });
 
         syncThemeControls();

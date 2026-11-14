@@ -3,22 +3,22 @@
 import * as React from 'react';
 
 const BASE =
-  'inline-flex items-center justify-center whitespace-nowrap rounded-sm text-sm font-medium transition-[transform,background-color,border-color,color] duration-100 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.97] select-none disabled:pointer-events-none disabled:opacity-50';
+  'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium tracking-tight transition-[transform,background-color,border-color,color] duration-100 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.98] select-none disabled:pointer-events-none disabled:opacity-50 cursor-pointer';
 
 const VARIANTS = {
-  default: 'bg-primary text-primary-foreground hover:bg-primary/90',
-  destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
-  outline: 'border border-input bg-background hover:bg-accent hover:text-accent-foreground',
-  secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
-  ghost: 'hover:bg-accent hover:text-accent-foreground',
+  default: 'bg-primary text-primary-foreground font-semibold shadow-sm hover:bg-primary/95',
+  destructive: 'bg-destructive/15 border border-destructive/30 text-destructive-foreground hover:bg-destructive/25',
+  outline: 'border border-white/[0.09] bg-background/50 hover:bg-white/[0.05] hover:border-white/[0.15] hover:text-foreground',
+  secondary: 'bg-secondary/80 border border-white/[0.06] text-secondary-foreground hover:bg-secondary hover:text-foreground',
+  ghost: 'hover:bg-white/[0.06] hover:text-foreground',
   link: 'text-primary underline-offset-4 hover:underline',
 } as const;
 
 const SIZES = {
-  default: 'h-10 px-4 py-2',
-  sm: 'h-9 px-3',
-  lg: 'h-11 px-8',
-  icon: 'h-10 w-10',
+  default: 'h-9 px-4 py-2',
+  sm: 'h-8 px-3 text-xs',
+  lg: 'h-10 px-6 text-sm',
+  icon: 'h-8 w-8',
 } as const;
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {

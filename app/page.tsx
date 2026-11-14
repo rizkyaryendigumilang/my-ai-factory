@@ -151,18 +151,20 @@ export default function LandingPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-40 border-b border-white/[0.08] bg-background/80 backdrop-blur-md backdrop-saturate-150 supports-[backdrop-filter]:bg-background/60">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-7 w-7 items-center justify-center rounded-sm bg-primary text-xs font-bold text-primary-foreground">AF</span>
-            <span className="font-semibold tracking-tight">My AI Factory</span>
-            <span className="hidden text-xs text-muted-foreground sm:inline">/ Autonomous Software Foundry</span>
+      <header className="sticky top-0 z-40 border-b border-white/[0.07] bg-[#080B11]/85 backdrop-blur-xl">
+        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
+          <div className="flex items-center gap-3">
+            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground shadow-sm">AF</span>
+            <div className="flex items-baseline gap-2">
+              <span className="font-bold tracking-tight text-foreground text-sm">My AI Factory</span>
+              <span className="hidden text-[11px] text-muted-foreground sm:inline font-medium tracking-wide">/ Autonomous Software House</span>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => setShowSettingsModal(true)}
-              className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground transition-[transform,background-color,border-color,color] duration-100 ease-out hover:border-primary active:scale-[0.97]"
+              className="inline-flex items-center gap-1.5 rounded-md border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-xs font-medium text-foreground transition-all duration-100 ease-out hover:bg-white/[0.08] hover:border-white/[0.15] active:scale-[0.98]"
               title="Buka Pengaturan Pabrik & Integrasi Sistem (AI, VPS, GitHub)"
             >
               <Settings className="h-3.5 w-3.5 text-primary" />
@@ -170,7 +172,7 @@ export default function LandingPage() {
             </button>
             <Link
               href="/office"
-              className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground transition-[transform,background-color,border-color,color] duration-100 ease-out hover:border-primary active:scale-[0.97]"
+              className="inline-flex items-center gap-1.5 rounded-md border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-xs font-medium text-foreground transition-all duration-100 ease-out hover:bg-white/[0.08] hover:border-white/[0.15] active:scale-[0.98]"
               title="Buka Software House Virtual Office Layar Penuh"
             >
               <Building2 className="h-3.5 w-3.5 text-primary" />
@@ -178,7 +180,7 @@ export default function LandingPage() {
             </Link>
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-foreground transition-[transform,background-color,border-color,color] duration-100 ease-out hover:border-primary active:scale-[0.97]"
+              className="inline-flex items-center gap-1.5 rounded-md border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-foreground transition-all duration-100 ease-out hover:bg-primary/20 hover:border-primary/50 active:scale-[0.98]"
             >
               <FolderGit2 className="h-3.5 w-3.5 text-primary" /> Buka Workspace
             </Link>
@@ -187,35 +189,35 @@ export default function LandingPage() {
       </header>
 
       <main className="flex-1">
-        <section className="mx-auto max-w-6xl px-4 py-10 lg:py-14">
-          <div className="grid items-start gap-8 lg:grid-cols-12">
-            <div className="lg:col-span-6">
-              <p className="mb-2 text-xs font-medium text-primary">Virtual CTO &amp; Full-Directory Code Foundry</p>
-              <h1 className="text-balance text-3xl font-bold tracking-tight sm:text-4xl">
-                Rakit dokumen produk, skema diagram, dan direktori kode dari satu spesifikasi.
-              </h1>
-              <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
-                Masukkan kebutuhan aplikasi Anda. Enam spesialis AI menyusun BRD/PRD, cetak biru{' '}
-                <code>.drawio</code> &amp; Mermaid, menganalisis biaya cloud, lalu menulis seluruh file
-                Next.js + PocketBase yang siap dijalankan dan diedit langsung.
-              </p>
+        <section className="mx-auto max-w-6xl px-4 sm:px-6 py-10 lg:py-14">
+          <div className="grid items-start gap-10 lg:grid-cols-12">
+            <div className="lg:col-span-6 space-y-5">
+              <div>
+                <p className="mb-2 text-xs font-semibold tracking-wider text-primary uppercase">Virtual CTO &amp; Autonomous Software Foundry</p>
+                <h1 className="text-balance text-3xl font-extrabold tracking-tight sm:text-4xl text-foreground leading-[1.15]">
+                  Rakit dokumen produk, skema arsitektur, dan kode Next.js utuh.
+                </h1>
+                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                  Jelaskan kebutuhan aplikasi Anda. Enam spesialis AI berkolaborasi menyusun BRD/PRD, diagram ERD &amp; UML, menghitung estimasi cloud, dan merakit direktori kode Next.js yang siap dijalankan di sandbox.
+                </p>
+              </div>
 
-              <form onSubmit={create} className="mt-6 space-y-5">
-                <div>
-                  <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
-                    <label htmlFor="raw-prompt" className="text-sm font-medium">Spesifikasi aplikasi</label>
+              <form onSubmit={create} className="space-y-5">
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <label htmlFor="raw-prompt" className="text-xs font-semibold text-foreground tracking-tight">Spesifikasi Aplikasi</label>
                     <div className="flex flex-wrap items-center gap-1.5">
                       <button
                         type="button"
                         onClick={toggleListening}
-                        className={`inline-flex items-center gap-1 rounded-sm border px-2 py-0.5 text-xs font-medium transition-[transform,background-color,border-color,color] duration-100 ease-out active:scale-[0.97] ${
+                        className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-all duration-100 ease-out active:scale-[0.98] ${
                           listening
-                            ? 'border-red-500/80 bg-red-500/10 text-red-400 animate-pulse'
-                            : 'border-border bg-card text-muted-foreground hover:border-primary hover:text-foreground'
+                            ? 'border-rose-500/80 bg-rose-500/15 text-rose-300 animate-pulse'
+                            : 'border-white/[0.08] bg-white/[0.03] text-muted-foreground hover:border-primary hover:text-foreground'
                         }`}
                         title={listening ? 'Klik untuk berhenti mendikte' : 'Dikte spesifikasi dengan suara (Bahasa Indonesia)'}
                       >
-                        {listening ? <MicOff className="h-3 w-3 text-red-400" /> : <Mic className="h-3 w-3 text-primary" />}
+                        {listening ? <MicOff className="h-3 w-3 text-rose-400" /> : <Mic className="h-3 w-3 text-primary" />}
                         <span>{listening ? 'Mendengarkan…' : 'Dikte Suara'}</span>
                       </button>
                       {PRESETS.map((preset) => (
@@ -223,7 +225,7 @@ export default function LandingPage() {
                           key={preset.label}
                           type="button"
                           onClick={() => { setPrompt(preset.prompt); setPersona(preset.persona); }}
-                          className="rounded-sm border border-border bg-card px-2 py-0.5 text-xs text-muted-foreground transition-[transform,background-color,border-color,color] duration-100 ease-out hover:border-primary hover:text-foreground active:scale-[0.97]"
+                          className="rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-0.5 text-[11px] text-muted-foreground transition-all duration-100 ease-out hover:border-primary/50 hover:bg-white/[0.06] hover:text-foreground active:scale-[0.98]"
                         >
                           + {preset.label}
                         </button>
@@ -238,13 +240,13 @@ export default function LandingPage() {
                     required
                     minLength={3}
                     maxLength={8000}
-                    placeholder="Jelaskan alur pengguna utama, data yang disimpan, dan fitur kunci aplikasi yang ingin Anda bangun…"
-                    className="w-full resize-y rounded-sm border border-input bg-card p-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                    placeholder="Contoh: Sistem kasir toko dengan cetak struk, pelacakan stok menipis, diskon otomatis, dan dashboard laba harian..."
+                    className="w-full resize-y rounded-xl border border-white/[0.09] bg-[#0E131F]/90 p-3.5 text-sm text-foreground placeholder:text-muted-foreground/60 focus:border-primary/60 focus:outline-none focus:ring-1 focus:ring-primary/40 shadow-inner"
                   />
                 </div>
 
                 <fieldset>
-                  <legend className="mb-2 text-sm font-medium">Mode kerja arsitek (Gem)</legend>
+                  <legend className="mb-2 text-xs font-semibold text-foreground tracking-tight">Mode Kerja Arsitek AI</legend>
                   <div role="radiogroup" className="grid gap-2 sm:grid-cols-2">
                     {GEM_PERSONA_IDS.map((k) => (
                       <button
@@ -253,40 +255,42 @@ export default function LandingPage() {
                         role="radio"
                         aria-checked={persona === k}
                         onClick={() => setPersona(k)}
-                        className={`rounded-sm border p-2.5 text-left text-sm transition-[transform,background-color,border-color,color] duration-100 ease-out active:scale-[0.97] select-none ${
-                          persona === k ? 'border-primary bg-primary/10 text-foreground' : 'border-border bg-card text-muted-foreground hover:text-foreground'
+                        className={`rounded-xl border p-3 text-left transition-all duration-150 ease-out active:scale-[0.98] select-none cursor-pointer ${
+                          persona === k
+                            ? 'border-primary/50 bg-primary/10 shadow-sm'
+                            : 'border-white/[0.07] bg-[#0E131F]/60 text-muted-foreground hover:border-white/[0.15] hover:bg-white/[0.04]'
                         }`}
                       >
-                        <span className="block font-semibold text-foreground">{GEM_PERSONAS[k].label}</span>
-                        <span className="text-xs text-muted-foreground">{GEM_PERSONAS[k].desc}</span>
+                        <span className="block font-semibold text-xs text-foreground tracking-tight">{GEM_PERSONAS[k].label}</span>
+                        <span className="text-[11px] text-muted-foreground leading-snug mt-0.5 block">{GEM_PERSONAS[k].desc}</span>
                       </button>
                     ))}
                   </div>
                 </fieldset>
 
-                {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+                {error && <p role="alert" className="text-xs text-destructive rounded-md bg-destructive/10 p-2.5 border border-destructive/20">{error}</p>}
 
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3 pt-1">
                   <button
                     type="submit"
                     disabled={loading || prompt.trim().length < 3}
-                    className="inline-flex h-10 items-center gap-2 rounded-sm bg-primary px-5 text-sm font-semibold text-primary-foreground transition-[transform,background-color,border-color,color] duration-100 ease-out hover:bg-primary/90 active:scale-[0.97] select-none disabled:opacity-50"
+                    className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-5 text-xs font-semibold text-primary-foreground shadow-sm transition-all duration-100 ease-out hover:bg-primary/95 active:scale-[0.98] select-none disabled:opacity-40 cursor-pointer"
                   >
                     {loading ? 'Menyiapkan ruang kerja…' : 'Rakit Proyek Sekarang'}
                     <ArrowRight className="h-4 w-4" />
                   </button>
-                  <span className="text-xs text-muted-foreground">Lanjut ke unggah wireframe &amp; modul Skills di ruang kerja.</span>
+                  <span className="text-[11px] text-muted-foreground">Lanjut ke unggah wireframe &amp; persetujuan alur kerja.</span>
                 </div>
               </form>
             </div>
 
             <div className="lg:col-span-6 space-y-3">
-              <div className="rounded-sm border border-border bg-card p-3">
-                <div className="mb-2 flex items-center justify-between text-xs">
-                  <span className="flex items-center gap-1.5 font-semibold text-foreground">
-                    <Layers className="h-3.5 w-3.5 text-primary" /> Inspeksi Stasiun Produksi (Klik untuk simulasi)
+              <div className="rounded-xl border border-white/[0.08] bg-[#0E131F]/80 p-4 shadow-lg backdrop-blur-md">
+                <div className="mb-3 flex items-center justify-between text-xs">
+                  <span className="flex items-center gap-1.5 font-semibold text-foreground tracking-tight">
+                    <Layers className="h-3.5 w-3.5 text-primary" /> Stasiun Produksi AI (Klik untuk simulasi)
                   </span>
-                  <span className="text-muted-foreground">{currentStation.step}</span>
+                  <span className="text-[11px] font-medium text-muted-foreground bg-white/[0.04] px-2 py-0.5 rounded-full">{currentStation.step}</span>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {STATIONS.map((s, idx) => (
@@ -294,23 +298,25 @@ export default function LandingPage() {
                       key={s.role}
                       type="button"
                       onClick={() => setActiveStation(idx)}
-                      className={`min-w-[140px] flex-1 rounded-sm border px-2.5 py-1.5 text-left text-xs transition-[transform,background-color,border-color,color] duration-100 ease-out active:scale-[0.97] select-none ${
-                        activeStation === idx ? 'border-primary bg-primary/10 font-medium text-foreground' : 'border-border bg-background text-muted-foreground hover:text-foreground'
+                      className={`min-w-[130px] flex-1 rounded-lg border px-3 py-2 text-left text-xs transition-all duration-100 ease-out active:scale-[0.98] select-none cursor-pointer ${
+                        activeStation === idx
+                          ? 'border-primary/50 bg-primary/10 font-semibold text-foreground shadow-sm'
+                          : 'border-white/[0.06] bg-black/25 text-muted-foreground hover:border-white/[0.12] hover:text-foreground'
                       }`}
                     >
-                      <span className="block text-[11px] text-primary">{s.step}</span>
-                      <span className="block truncate">{s.title}</span>
+                      <span className="block text-[10px] font-semibold text-primary uppercase tracking-wider">{s.step}</span>
+                      <span className="block truncate text-xs text-foreground mt-0.5">{s.title}</span>
                     </button>
                   ))}
                 </div>
-                <div className="mt-3 rounded-sm border border-border bg-[#090c14] p-3">
-                  <div className="mb-1.5 flex items-center justify-between text-xs text-muted-foreground">
+                <div className="mt-3.5 rounded-lg border border-white/[0.07] bg-[#070A10] p-3.5 font-mono text-xs shadow-inner">
+                  <div className="mb-2 flex items-center justify-between text-[11px] text-muted-foreground">
                     <span className="flex items-center gap-1.5 font-medium text-foreground">
-                      <Terminal className="h-3.5 w-3.5 text-primary" /> Output Artefak: {currentStation.artifact}
+                      <Terminal className="h-3.5 w-3.5 text-primary" /> Artefak: {currentStation.artifact}
                     </span>
-                    <span>{currentStation.title}</span>
+                    <span className="text-[10px] opacity-60">{currentStation.title}</span>
                   </div>
-                  <pre className="overflow-x-auto text-xs leading-5 text-slate-300"><code>{currentStation.sample}</code></pre>
+                  <pre className="overflow-x-auto text-[11px] leading-5 text-slate-300 font-mono"><code>{currentStation.sample}</code></pre>
                 </div>
               </div>
             </div>
