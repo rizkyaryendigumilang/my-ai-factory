@@ -28,12 +28,12 @@
         "name": "Hermes VPS",
         "apiUrl": "https://43.156.236.102:8444",
         "dashboardUrl": "https://43.156.236.102:8444/?profile=default",
-        "apiKey": "Apaya1234",
+        "apiKey": "",
         "enabled": true
       }
     ],
     "platformEnabled": true,
-    "platformToken": "Apaya1234",
+    "platformToken": "",
     "platformAgentId": "hermes-gateway"
   },
   "presence": {

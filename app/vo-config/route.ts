@@ -4,12 +4,28 @@ import path from 'node:path';
 
 export const dynamic = 'force-dynamic';
 
+function sanitizeConfig(config: any) {
+  if (!config || typeof config !== 'object') return config;
+  const clone = JSON.parse(JSON.stringify(config));
+
+  // Mask sensitive Hermes keys in public payload
+  if (clone.hermes?.connections && Array.isArray(clone.hermes.connections)) {
+    for (const c of clone.hermes.connections) {
+      if (c.apiKey) c.apiKey = '••••••••';
+    }
+  }
+  if (clone.hermes?.platformToken) {
+    clone.hermes.platformToken = '••••••••';
+  }
+  return clone;
+}
+
 export async function GET() {
   const filePath = path.join(process.cwd(), 'public', 'virtual-office', 'vo-config.json');
   try {
     const raw = fs.readFileSync(filePath, 'utf8');
     const parsed = JSON.parse(raw);
-    return NextResponse.json(parsed);
+    return NextResponse.json(sanitizeConfig(parsed));
   } catch {
     return NextResponse.json({
       office: {
@@ -35,7 +51,7 @@ export async function GET() {
             id: 'hermes-vps',
             name: 'Hermes VPS',
             apiUrl: 'https://43.156.236.102:8444',
-            apiKey: 'Apaya1234',
+            apiKey: '',
             enabled: true,
           },
         ],

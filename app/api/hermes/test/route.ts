@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import https from 'node:https';
 import http from 'node:http';
+import { isSafeExternalUrl } from '@/lib/security-scanner';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,6 +38,18 @@ export async function POST(req: Request) {
       let ok = false;
       const model = 'hermes-agent-telemetry';
       let error = '';
+
+      const urlCheck = isSafeExternalUrl(url);
+      if (!urlCheck.safe) {
+        return {
+          id: c.id || 'custom',
+          name: c.name || 'Custom Endpoint',
+          url,
+          ok: false,
+          model,
+          error: `Akses ditolak: ${urlCheck.error}`,
+        };
+      }
 
       try {
         const u = new URL(url);

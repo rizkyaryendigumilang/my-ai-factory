@@ -26,11 +26,11 @@ export async function dispatchToRemoteAgent(
   options: { timeoutMs?: number; maxTokens?: number } = {}
 ): Promise<RemoteDispatchResult> {
   const start = Date.now();
-  let apiKey = process.env.HERMES_API_KEY || 'Apaya1234';
+  let apiKey = process.env.HERMES_API_KEY || '';
   if (config.source === 'router9-vps') {
-    apiKey = process.env.ROUTER_9_API_KEY || 'sk-11229f9206f6a4c2-dox3gw-a168f1b5';
+    apiKey = process.env.ROUTER_9_API_KEY || '';
   } else if (config.source === 'ollama-vm') {
-    apiKey = process.env.OPEN_WEBUI_API_KEY || 'sk-factory-kiky-ollama-2026';
+    apiKey = process.env.OPEN_WEBUI_API_KEY || '';
   }
 
   let targetUrl = config.endpointUrl;
@@ -95,7 +95,7 @@ export async function dispatchToRemoteAgent(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
+        ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
         'X-Agent-Role': role,
         'X-Division': config.divisionTitle,
       },

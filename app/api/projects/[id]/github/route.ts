@@ -19,7 +19,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   const body = await req.json().catch(() => ({}));
-  const token = (body.token || getEffectiveGithubToken() || '').trim();
+  let token = (body.token || '').trim();
+  // Confused Deputy prevention (HIGH-05): only fallback to server token if explicitly requested or local owner
+  if (!token && (body.useFactoryToken || state.project.user_id === 'local')) {
+    token = getEffectiveGithubToken() || '';
+  }
   const repoName = (body.repoName || slug(state.project.title)).trim().replace(/[^a-zA-Z0-9._-]/g, '-');
   const isPrivate = Boolean(body.isPrivate ?? false);
   const description = body.description || `${state.project.title} - Dibuat otomatis oleh My AI Factory`;

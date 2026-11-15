@@ -8,6 +8,7 @@ import {
   getEffectiveHermesUrl,
   readRawSettings,
 } from '@/lib/settings-store';
+import { isSafeExternalUrl } from '@/lib/security-scanner';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,6 +50,11 @@ export async function POST(req: Request) {
       const endpoint = body.endpoint || getEffectiveHermesUrl();
       if (!endpoint) {
         return NextResponse.json({ ok: false, message: 'Hermes Endpoint belum ditentukan.' });
+      }
+
+      const urlCheck = isSafeExternalUrl(endpoint);
+      if (!urlCheck.safe) {
+        return NextResponse.json({ ok: false, message: `Akses ditolak: ${urlCheck.error}` });
       }
 
       const start = Date.now();

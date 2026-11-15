@@ -16,8 +16,11 @@ export async function getSessionUserId(opts: { createIfMissing?: boolean } = {})
   try {
     const h = await headers();
     const fromHeader = h.get('x-factory-user')?.trim();
+    // Allow header override in non-production or when explicit test flag is set (CRIT-04)
     if (fromHeader && /^[a-zA-Z0-9_-]{2,64}$/.test(fromHeader)) {
-      return fromHeader;
+      if (process.env.NODE_ENV !== 'production' || process.env.FACTORY_ALLOW_TEST_HEADER === '1') {
+        return fromHeader;
+      }
     }
     const jar = await cookies();
     const existing = jar.get(COOKIE_NAME)?.value;

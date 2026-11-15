@@ -193,3 +193,31 @@ export function scanProjectFiles(
     timestamp: new Date().toISOString(),
   };
 }
+
+/**
+ * SSRF Protection Validator (OWASP A10):
+ * Prevents requests to localhost, loopback addresses, link-local metadata (169.254.x),
+ * and unsupported URL schemes.
+ */
+export function isSafeExternalUrl(urlStr: string): { safe: boolean; error?: string } {
+  try {
+    const u = new URL(urlStr);
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') {
+      return { safe: false, error: 'Protokol harus http: atau https:' };
+    }
+    const host = u.hostname.toLowerCase();
+    if (
+      host === 'localhost' ||
+      host === '127.0.0.1' ||
+      host === '0.0.0.0' ||
+      host === '::1' ||
+      host.startsWith('127.') ||
+      host.startsWith('169.254.')
+    ) {
+      return { safe: false, error: 'Akses ke loopback atau cloud metadata dilarang demi keamanan (SSRF Protection)' };
+    }
+    return { safe: true };
+  } catch {
+    return { safe: false, error: 'Format URL tidak valid' };
+  }
+}

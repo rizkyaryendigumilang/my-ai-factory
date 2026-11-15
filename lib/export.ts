@@ -1,7 +1,7 @@
 import 'server-only';
 import JSZip from 'jszip';
 import { diagramToDrawio, isDiagramDoc } from './drawio';
-import { exportFilename, slug } from './ecc-core';
+import { exportFilename, slug, sanitizePath } from './ecc-core';
 import type { ProjectDocument, ProjectFile } from '@/types';
 
 export { exportFilename, slug };
@@ -32,7 +32,10 @@ export async function buildZip(title: string, files: ProjectFile[], documents: P
   const zip = new JSZip();
   const dir = zip.folder(root)!;
 
-  for (const f of files) dir.file(f.file_path, f.file_content);
+  for (const f of files) {
+    const cleanPath = sanitizePath(f.file_path);
+    if (cleanPath) dir.file(cleanPath, f.file_content);
+  }
 
   const docs = dir.folder('docs')!;
   for (const d of documents) {

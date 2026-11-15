@@ -4,6 +4,15 @@ import os from 'node:os';
 import { spawn, type ChildProcess } from 'node:child_process';
 import type { ProjectFile } from '@/types';
 
+/** Reject path traversal / absolute paths / junk (CRIT-02) */
+function sanitizeFilePath(p: string): string | null {
+  const clean = String(p ?? '').replace(/\\/g, '/').replace(/^\.\//, '').trim();
+  if (!clean || clean.startsWith('/') || /^[a-z]:/i.test(clean)) return null;
+  if (clean.split('/').some((seg) => seg === '..' || seg === '')) return null;
+  if (clean.length > 120) return null;
+  return clean;
+}
+
 export interface SandboxStatus {
   projectId: string;
   status: 'stopped' | 'starting' | 'running' | 'failed';
@@ -99,8 +108,17 @@ export async function syncProjectFilesToDisk(
   port: number = DEFAULT_SANDBOX_PORT
 ): Promise<number> {
   let count = 0;
+  const resolvedTarget = path.resolve(targetDir);
   for (const f of files) {
-    const fullPath = path.join(targetDir, f.file_path);
+    const cleanPath = sanitizeFilePath(f.file_path);
+    if (!cleanPath) continue; // Block traversal or absolute paths
+
+    const fullPath = path.resolve(resolvedTarget, cleanPath);
+    // Boundary check: ensure fullPath is strictly inside targetDir
+    if (!fullPath.startsWith(resolvedTarget + path.sep) && fullPath !== resolvedTarget) {
+      continue;
+    }
+
     const parent = path.dirname(fullPath);
     if (!fs.existsSync(parent)) {
       fs.mkdirSync(parent, { recursive: true });
@@ -262,15 +280,24 @@ export async function startSandboxRunner(
   const args = fs.existsSync(nextBin) ? ['dev', '-p', String(port)] : ['next', 'dev', '-p', String(port)];
 
   try {
+    // Clean, isolated environment for the sandbox process (CRIT-01: prevent host secret leakage)
+    const isolatedEnv: NodeJS.ProcessEnv = {
+      PATH: process.env.PATH || '',
+      SYSTEMROOT: process.env.SYSTEMROOT || '',
+      HOME: process.env.HOME || '',
+      USER: process.env.USER || '',
+      TEMP: process.env.TEMP || '',
+      TMP: process.env.TMP || '',
+      PORT: String(port),
+      NODE_ENV: 'development',
+      NODE_OPTIONS: `${process.env.NODE_OPTIONS || ''} --max-old-space-size=256`.trim(),
+      NEXT_TELEMETRY_DISABLED: '1',
+    };
+
     const proc = spawn(cmd, args, {
       cwd: sandboxDir,
-      env: {
-        ...process.env,
-        PORT: String(port),
-        NODE_ENV: 'development',
-        NODE_OPTIONS: `${process.env.NODE_OPTIONS || ''} --max-old-space-size=256`.trim(),
-      },
-      shell: true,
+      env: isolatedEnv,
+      shell: process.platform === 'win32',
     });
 
     instance.process = proc;

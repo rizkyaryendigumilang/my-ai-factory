@@ -16,7 +16,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const q = url.searchParams.get('q') || project.raw_prompt || project.title;
 
   try {
-    const snippets = await retrieveDomainMemory(q, id, 6);
+    const snippets = await retrieveDomainMemory(q, id, 6, project.user_id);
     return NextResponse.json({ ok: true, snippets, query: q });
   } catch (err: any) {
     return NextResponse.json({ ok: false, error: err?.message || 'Gagal memuat domain memory' }, { status: 500 });
@@ -33,7 +33,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   try {
     const body = await req.json().catch(() => ({}));
     const query = String(body.query || project.raw_prompt || project.title);
-    const snippets = await retrieveDomainMemory(query, id, 6);
+    const snippets = await retrieveDomainMemory(query, id, 6, project.user_id);
     return NextResponse.json({ ok: true, snippets, query });
   } catch (err: any) {
     return NextResponse.json({ ok: false, error: err?.message || 'Gagal memproses query memory' }, { status: 500 });

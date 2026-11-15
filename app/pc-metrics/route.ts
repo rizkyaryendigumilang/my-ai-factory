@@ -7,7 +7,6 @@ export async function GET() {
   return Response.json(metrics, {
     headers: {
       'Cache-Control': 'no-store, no-cache, must-revalidate',
-      'Access-Control-Allow-Origin': '*',
     },
   });
 }

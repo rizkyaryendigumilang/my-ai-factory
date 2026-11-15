@@ -9,7 +9,6 @@ export async function GET() {
   return Response.json(usage, {
     headers: {
       'Cache-Control': 'no-store, no-cache, must-revalidate',
-      'Access-Control-Allow-Origin': '*',
     },
   });
 }

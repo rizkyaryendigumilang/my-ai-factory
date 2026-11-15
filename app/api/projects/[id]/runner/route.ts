@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import * as store from '@/lib/store';
 import { getSandboxRunnerStatus, startSandboxRunner, stopSandboxRunner } from '@/lib/vps-runner';
+import { scanProjectFiles } from '@/lib/security-scanner';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -34,8 +35,24 @@ export async function POST(req: Request, { params }: Ctx) {
     if (!files.length) {
       return NextResponse.json({ error: 'Belum ada file kode pada proyek ini. Jalankan perakitan terlebih dahulu.' }, { status: 400 });
     }
+
+    // Automated Pre-Flight Security Gate (MED-03)
+    const scanReport = scanProjectFiles(
+      files.map((f) => ({ filePath: f.file_path, fileContent: f.file_content }))
+    );
+    if (scanReport.criticalCount > 0) {
+      const topIssue = scanReport.findings.find((f) => f.severity === 'critical');
+      return NextResponse.json(
+        {
+          error: `Pre-flight security check gagal: Terdeteksi ${scanReport.criticalCount} temuan kritis (${topIssue?.title || 'Risiko Keamanan'}). Perbaiki kode sebelum menjalankan sandbox.`,
+          securityReport: scanReport,
+        },
+        { status: 400 }
+      );
+    }
+
     const status = await startSandboxRunner(id, files);
-    return NextResponse.json({ ok: true, runner: status });
+    return NextResponse.json({ ok: true, runner: status, securityReport: scanReport });
   }
 
   return NextResponse.json({ error: 'Action tidak dikenal' }, { status: 400 });

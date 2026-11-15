@@ -13,7 +13,21 @@ export async function POST(req: Request) {
     if (fs.existsSync(filePath)) {
       current = JSON.parse(fs.readFileSync(filePath, 'utf8'));
     }
+
+    // Merge non-sensitive fields
     const merged = { ...current, ...payload };
+
+    // Prevent masked values from overwriting real config
+    if (payload.hermes?.connections && Array.isArray(payload.hermes.connections)) {
+      merged.hermes.connections = payload.hermes.connections.map((c: any, idx: number) => {
+        const existing = current.hermes?.connections?.[idx] || {};
+        return {
+          ...c,
+          apiKey: c.apiKey && !c.apiKey.startsWith('••') ? c.apiKey : existing.apiKey || '',
+        };
+      });
+    }
+
     fs.writeFileSync(filePath, JSON.stringify(merged, null, 2), 'utf8');
     return NextResponse.json({ ok: true, config: merged });
   } catch (err: any) {
