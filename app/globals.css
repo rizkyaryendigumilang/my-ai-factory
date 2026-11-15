@@ -71,8 +71,19 @@
     will-change: transform;
   }
 
+  html {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
   button, a {
     -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Active press feedback on touch devices */
+  button:active, a:active {
+    transform: scale(0.985);
+    transition: transform 75ms ease-out;
   }
 
   /* Sleek modern dark scrollbars */

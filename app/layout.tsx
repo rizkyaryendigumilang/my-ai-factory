@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Noto_Sans, IBM_Plex_Mono } from 'next/font/google';
 import './globals.css';
 
@@ -15,6 +15,13 @@ const plexMono = IBM_Plex_Mono({
   variable: '--font-geist-mono',
   display: 'swap',
 });
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#080B11',
+};
 
 export const metadata: Metadata = {
   title: 'My AI Factory - Autonomous Software Foundry',
@@ -37,7 +44,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-screen antialiased font-sans">{children}</body>
+      <body className="min-h-[100dvh] antialiased font-sans pb-[env(safe-area-inset-bottom)]">{children}</body>
     </html>
   );
 }

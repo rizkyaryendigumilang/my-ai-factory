@@ -163,7 +163,7 @@ export default function ProjectSetup({
           maxLength={8000}
           aria-label="Ide aplikasi"
           placeholder="Jelaskan produk yang ingin dibangun…"
-          className="mb-3 w-full resize-y rounded-sm border border-input bg-background p-3 text-sm"
+          className="mb-3 w-full resize-y rounded-sm border border-input bg-background p-3 text-base md:text-sm"
         />
         <div role="radiogroup" aria-label="AI Persona" className="grid gap-2 sm:grid-cols-2">
           {GEM_PERSONA_IDS.map((k) => (
@@ -201,7 +201,7 @@ export default function ProjectSetup({
               disabled={disabled}
               placeholder="https://… (tautan design system)"
               aria-label="Tautan referensi"
-              className="h-9 min-w-0 flex-1 rounded-sm border border-input bg-background px-3 text-sm"
+              className="h-9 min-w-0 flex-1 rounded-sm border border-input bg-background px-3 text-base md:text-sm"
             />
             <Button type="submit" variant="outline" size="sm" disabled={disabled || !linkInput.trim()}>
               <Link2 className="mr-1 h-4 w-4" /> Tambah

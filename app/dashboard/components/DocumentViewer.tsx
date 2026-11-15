@@ -13,9 +13,12 @@ import {
   Lock,
   Pencil,
   Play,
+  RotateCcw,
   Save,
   ShieldCheck,
   X,
+  ZoomIn,
+  ZoomOut,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { diagramToDrawio, isDiagramDoc } from '@/lib/drawio';
@@ -48,6 +51,7 @@ function DiagramView({ doc, type }: { doc: DiagramDoc; type: DocType }) {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [copiedMmd, setCopiedMmd] = useState(false);
+  const [zoom, setZoom] = useState(1);
 
   useEffect(() => {
     let cancelled = false;
@@ -90,31 +94,75 @@ function DiagramView({ doc, type }: { doc: DiagramDoc; type: DocType }) {
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <Button size="sm" variant="outline" onClick={() => downloadBlob(`${base}.drawio`, diagramToDrawio(doc, doc.title), 'application/xml')}>
-          <Download className="mr-1 h-3.5 w-3.5" /> .drawio (editable)
-        </Button>
-        <Button size="sm" variant="outline" disabled={!svg || busy} onClick={() => raster('png')}>
-          <Download className="mr-1 h-3.5 w-3.5" /> {busy ? 'Mengekspor…' : '.png'}
-        </Button>
-        <Button size="sm" variant="outline" disabled={!svg || busy} onClick={() => raster('jpeg')}>
-          <Download className="mr-1 h-3.5 w-3.5" /> {busy ? 'Mengekspor…' : '.jpg'}
-        </Button>
-        <Button size="sm" variant="ghost" onClick={copyMmd}>
-          {copiedMmd ? <Check className="mr-1 h-3.5 w-3.5 text-primary" /> : <Copy className="mr-1 h-3.5 w-3.5" />}
-          {copiedMmd ? 'Tersalin' : 'Salin Mermaid'}
-        </Button>
-        <Button size="sm" variant="ghost" onClick={() => downloadBlob(`${base}.mmd`, doc.mermaid)}>
-          <Download className="mr-1 h-3.5 w-3.5" /> .mmd
-        </Button>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => downloadBlob(`${base}.drawio`, diagramToDrawio(doc, doc.title), 'application/xml')}>
+            <Download className="mr-1 h-3.5 w-3.5" /> .drawio
+          </Button>
+          <Button size="sm" variant="outline" className="h-8 text-xs" disabled={!svg || busy} onClick={() => raster('png')}>
+            <Download className="mr-1 h-3.5 w-3.5" /> {busy ? 'Mengekspor…' : '.png'}
+          </Button>
+          <Button size="sm" variant="outline" className="h-8 text-xs" disabled={!svg || busy} onClick={() => raster('jpeg')}>
+            <Download className="mr-1 h-3.5 w-3.5" /> {busy ? 'Mengekspor…' : '.jpg'}
+          </Button>
+          <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={copyMmd}>
+            {copiedMmd ? <Check className="mr-1 h-3.5 w-3.5 text-primary" /> : <Copy className="mr-1 h-3.5 w-3.5" />}
+            {copiedMmd ? 'Tersalin' : 'Salin MMD'}
+          </Button>
+          <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => downloadBlob(`${base}.mmd`, doc.mermaid)}>
+            <Download className="mr-1 h-3.5 w-3.5" /> .mmd
+          </Button>
+        </div>
+
+        {/* Diagram Zoom & Pan Controls */}
+        <div className="flex items-center gap-1 rounded-lg border border-slate-700/60 bg-[#0E131F] p-1 text-xs">
+          <button
+            type="button"
+            className="flex h-7 w-7 items-center justify-center rounded text-slate-300 hover:bg-white/[0.08] hover:text-white transition-colors"
+            onClick={() => setZoom((z) => Math.max(0.4, Number((z - 0.15).toFixed(2))))}
+            title="Perkecil (-)"
+            aria-label="Perkecil diagram"
+          >
+            <ZoomOut className="h-3.5 w-3.5" />
+          </button>
+          <span className="w-11 text-center font-mono text-[11px] text-slate-300 tabular-nums">
+            {Math.round(zoom * 100)}%
+          </span>
+          <button
+            type="button"
+            className="flex h-7 w-7 items-center justify-center rounded text-slate-300 hover:bg-white/[0.08] hover:text-white transition-colors"
+            onClick={() => setZoom((z) => Math.min(2.5, Number((z + 0.15).toFixed(2))))}
+            title="Perbesar (+)"
+            aria-label="Perbesar diagram"
+          >
+            <ZoomIn className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            className="flex h-7 px-1.5 items-center justify-center rounded text-slate-400 hover:bg-white/[0.08] hover:text-white transition-colors text-[11px]"
+            onClick={() => setZoom(1)}
+            title="Reset Zoom ke 100%"
+          >
+            <RotateCcw className="h-3 w-3 mr-0.5" /> 100%
+          </button>
+        </div>
       </div>
+
       {note && <p className="text-xs text-muted-foreground">{note}</p>}
       {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
-      <div
-        className="overflow-auto rounded-md border border-border bg-white p-4"
-        // Mermaid output is sanitised by securityLevel:'strict'.
-        dangerouslySetInnerHTML={{ __html: svg || '<p style="color:#64748b;font-size:14px">Merender diagram…</p>' }}
-      />
+      <div className="relative overflow-hidden rounded-xl border border-white/[0.1] bg-[#0c1017]">
+        <div className="overflow-auto p-4 cursor-grab active:cursor-grabbing max-h-[620px] min-h-[300px] flex items-center justify-center">
+          <div
+            style={{
+              transform: `scale(${zoom})`,
+              transformOrigin: 'center center',
+              transition: 'transform 120ms ease-out',
+            }}
+            // Mermaid output is sanitised by securityLevel:'strict'.
+            dangerouslySetInnerHTML={{ __html: svg || '<p style="color:#64748b;font-size:14px">Merender diagram…</p>' }}
+          />
+        </div>
+      </div>
     </div>
   );
 }
@@ -193,7 +241,8 @@ function PrdView({ doc, projectId, onSaved }: { doc: ProjectDocument; projectId:
                 : 'text-muted-foreground hover:bg-white/[0.04] hover:text-foreground'
             }`}
           >
-            📄 1. BRD (Bisnis &amp; Sasaran)
+            <span className="hidden sm:inline">📄 1. BRD (Bisnis &amp; Sasaran)</span>
+            <span className="sm:hidden">📄 BRD</span>
           </button>
           <button
             type="button"
@@ -204,7 +253,8 @@ function PrdView({ doc, projectId, onSaved }: { doc: ProjectDocument; projectId:
                 : 'text-muted-foreground hover:bg-white/[0.04] hover:text-foreground'
             }`}
           >
-            📋 2. PRD (Spesifikasi Produk)
+            <span className="hidden sm:inline">📋 2. PRD (Spesifikasi Produk)</span>
+            <span className="sm:hidden">📋 PRD</span>
           </button>
           <button
             type="button"
@@ -215,7 +265,8 @@ function PrdView({ doc, projectId, onSaved }: { doc: ProjectDocument; projectId:
                 : 'text-muted-foreground hover:bg-white/[0.04] hover:text-foreground'
             }`}
           >
-            🧪 3. User Stories ({(c.userStories ?? []).length})
+            <span className="hidden sm:inline">🧪 3. User Stories ({(c.userStories ?? []).length})</span>
+            <span className="sm:hidden">🧪 Stories ({(c.userStories ?? []).length})</span>
           </button>
           <button
             type="button"
@@ -254,7 +305,7 @@ function PrdView({ doc, projectId, onSaved }: { doc: ProjectDocument; projectId:
           {([['BRD (markdown)', brd, setBrd], ['PRD (markdown)', prd, setPrd]] as const).map(([label, val, set]) => (
             <label key={label} className="block text-xs font-medium">
               {label}
-              <textarea value={val} onChange={(e) => set(e.target.value)} className="mt-1 h-72 w-full rounded-sm border border-input bg-background p-2 font-mono text-xs" />
+              <textarea value={val} onChange={(e) => set(e.target.value)} className="mt-1 h-72 w-full rounded-sm border border-input bg-background p-2 font-mono text-base md:text-xs" />
             </label>
           ))}
         </div>

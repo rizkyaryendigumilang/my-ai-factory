@@ -78,6 +78,7 @@ export default function CodeExplorer({
   onChanged: () => void;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
+  const [mobileFileTreeOpen, setMobileFileTreeOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [confirmRegen, setConfirmRegen] = useState(false);
   const [error, setError] = useState('');
@@ -147,42 +148,66 @@ export default function CodeExplorer({
   return (
     <div className="flex h-full min-h-0 flex-col gap-3 md:flex-row">
       <div className="flex min-h-0 shrink-0 flex-col rounded-md border border-border bg-card md:w-64">
-        <div className="flex flex-wrap items-center justify-between gap-1 border-b border-border p-2 text-xs text-muted-foreground">
-          <span className="tabular-nums">{files.length} file</span>
-          {confirmRegen ? (
-            <div className="flex items-center gap-1">
-              <Button size="sm" variant="destructive" className="h-7 px-2 text-xs" disabled={busy} onClick={regenerate}>
-                Ya, regenerasi
-              </Button>
-              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setConfirmRegen(false)}>
-                Batal
-              </Button>
-            </div>
-          ) : (
-            <Button size="sm" variant="ghost" disabled={busy} onClick={() => setConfirmRegen(true)}>
-              <RefreshCw className="mr-1 h-3.5 w-3.5" /> Regenerasi
-            </Button>
-          )}
+        {/* Mobile Header Toggle */}
+        <div className="flex items-center justify-between border-b border-border p-2 md:hidden">
+          <button
+            type="button"
+            onClick={() => setMobileFileTreeOpen((v) => !v)}
+            className="flex items-center gap-1.5 text-xs font-semibold text-primary truncate max-w-[200px]"
+          >
+            <FileIcon className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">{file?.file_path || 'Pilih berkas'}</span>
+            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${mobileFileTreeOpen ? 'rotate-180' : ''}`} />
+          </button>
+          <span className="tabular-nums text-[11px] text-muted-foreground">{files.length} berkas</span>
         </div>
-        <div className="border-b border-border p-2">
-          <div className="relative">
-            <Search className="absolute left-2 top-2 h-3.5 w-3.5 text-muted-foreground" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Cari file…"
-              aria-label="Cari file"
-              className="h-7.5 w-full rounded-sm border border-input bg-background pl-7 pr-2 text-xs"
-            />
+
+        <div className={`${mobileFileTreeOpen ? 'flex' : 'hidden md:flex'} flex-col min-h-0 flex-1`}>
+          <div className="hidden md:flex flex-wrap items-center justify-between gap-1 border-b border-border p-2 text-xs text-muted-foreground">
+            <span className="tabular-nums">{files.length} file</span>
+            {confirmRegen ? (
+              <div className="flex items-center gap-1">
+                <Button size="sm" variant="destructive" className="h-7 px-2 text-xs" disabled={busy} onClick={regenerate}>
+                  Ya, regenerasi
+                </Button>
+                <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setConfirmRegen(false)}>
+                  Batal
+                </Button>
+              </div>
+            ) : (
+              <Button size="sm" variant="ghost" disabled={busy} onClick={() => setConfirmRegen(true)}>
+                <RefreshCw className="mr-1 h-3.5 w-3.5" /> Regenerasi
+              </Button>
+            )}
           </div>
-        </div>
-        {error && <p role="alert" className="border-b border-border px-2 py-1 text-xs text-destructive">{error}</p>}
-        <div className="min-h-0 flex-1 overflow-y-auto p-1">
-          {filteredFiles.length === 0 ? (
-            <p className="p-3 text-center text-xs text-muted-foreground">Tidak ada file cocok.</p>
-          ) : (
-            <Tree nodes={tree} depth={0} selected={file?.file_path ?? null} onSelect={setSelected} />
-          )}
+          <div className="border-b border-border p-2">
+            <div className="relative">
+              <Search className="absolute left-2 top-2 h-3.5 w-3.5 text-muted-foreground" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Cari file…"
+                aria-label="Cari file"
+                className="h-8 w-full rounded-sm border border-input bg-background pl-7 pr-2 text-base md:text-xs"
+              />
+            </div>
+          </div>
+          {error && <p role="alert" className="border-b border-border px-2 py-1 text-xs text-destructive">{error}</p>}
+          <div className="max-h-60 md:max-h-none min-h-0 flex-1 overflow-y-auto p-1">
+            {filteredFiles.length === 0 ? (
+              <p className="p-3 text-center text-xs text-muted-foreground">Tidak ada file cocok.</p>
+            ) : (
+              <Tree
+                nodes={tree}
+                depth={0}
+                selected={file?.file_path ?? null}
+                onSelect={(path) => {
+                  setSelected(path);
+                  setMobileFileTreeOpen(false);
+                }}
+              />
+            )}
+          </div>
         </div>
       </div>
       <div className="flex min-h-0 min-w-0 flex-1 flex-col rounded-md border border-border bg-[#0c0f17] text-slate-200">
@@ -238,7 +263,7 @@ export default function CodeExplorer({
               placeholder="Contoh: Tambahkan penanganan error try-catch dan validasi Zod untuk request body..."
               rows={4}
               required
-              className="w-full rounded-md border border-input bg-background p-2.5 text-xs focus:ring-1 focus:ring-primary"
+              className="w-full rounded-md border border-input bg-background p-2.5 text-base md:text-xs focus:ring-1 focus:ring-primary"
             />
           </div>
           {error && <p className="text-xs text-destructive">{error}</p>}

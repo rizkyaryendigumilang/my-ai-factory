@@ -26,6 +26,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogHeader } from '@/components/ui/dialog';
 import { officeActivity } from '@/lib/activity';
 import dynamic from 'next/dynamic';
 import { api, useProjectState } from '@/lib/use-project';
@@ -48,10 +49,10 @@ const SettingsModal = dynamic(() => import('@/components/SettingsModal'), { ssr:
 const WarRoomModal = dynamic(() => import('@/components/WarRoomModal'), { ssr: false });
 
 const PILLARS = [
-  { id: 'pipeline', label: '1. Pipeline & Produksi', icon: Factory, desc: 'Lantai produksi, setup & telemetri agen' },
-  { id: 'blueprint', label: '2. Cetak Biru & Dokumen', icon: FileCode2, desc: 'PRD, Gherkin Runner, ERD & OWASP Gate' },
-  { id: 'code', label: '3. Kode & Sandbox Visual', icon: Laptop2, desc: 'Workspace terpadu: editor berkas & live preview' },
-  { id: 'release', label: '4. Rilis & Peluncuran', icon: Rocket, desc: 'Arsip ZIP versi & Marketing Launch Kit' },
+  { id: 'pipeline', label: '1. Pipeline & Produksi', shortLabel: 'Pipeline', icon: Factory, desc: 'Lantai produksi, setup & telemetri agen' },
+  { id: 'blueprint', label: '2. Cetak Biru & Dokumen', shortLabel: 'Blueprint', icon: FileCode2, desc: 'PRD, Gherkin Runner, ERD & OWASP Gate' },
+  { id: 'code', label: '3. Kode & Sandbox Visual', shortLabel: 'Kode', icon: Laptop2, desc: 'Workspace terpadu: editor berkas & live preview' },
+  { id: 'release', label: '4. Rilis & Peluncuran', shortLabel: 'Rilis', icon: Rocket, desc: 'Arsip ZIP versi & Marketing Launch Kit' },
 ] as const;
 type PillarId = (typeof PILLARS)[number]['id'];
 
@@ -81,6 +82,7 @@ function Workspace() {
   const [showDivisionModal, setShowDivisionModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showWarRoom, setShowWarRoom] = useState(false);
+  const [showMobileProjects, setShowMobileProjects] = useState(false);
 
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -118,6 +120,7 @@ function Workspace() {
       if (e.key === 'Escape') {
         setConfirmDeleteId(null);
         setShowEngineDrawer(false);
+        setShowMobileProjects(false);
         return;
       }
       const num = Number(e.key);
@@ -189,7 +192,7 @@ function Workspace() {
   };
 
   return (
-    <div className="flex h-screen flex-col bg-background text-foreground antialiased selection:bg-primary/25 selection:text-foreground">
+    <div className="flex h-[100dvh] flex-col bg-background text-foreground antialiased selection:bg-primary/25 selection:text-foreground">
       {/* Streamlined Top Navigation Header */}
       <header className="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.07] bg-[#080B11]/90 backdrop-blur-xl px-4 py-2.5">
         <div className="flex items-center gap-3.5">
@@ -203,16 +206,19 @@ function Workspace() {
             </div>
           </Link>
           {projects.length > 0 && (
-            <select
-              aria-label="Pilih proyek"
-              value={activeId ?? ''}
-              onChange={(e) => e.target.value && router.push(`/dashboard?project=${e.target.value}`)}
-              className="h-8 max-w-[190px] rounded-md border border-white/[0.1] bg-card px-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary md:hidden"
-            >
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>{p.title} ({STATUS[p.status].label})</option>
-              ))}
-            </select>
+            <div className="flex items-center gap-1.5 md:hidden">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowMobileProjects(true)}
+                className="h-8 max-w-[160px] truncate text-xs px-2.5 gap-1.5 border-white/[0.1] bg-card text-foreground"
+                title="Ganti Proyek Aktif"
+              >
+                <FolderGit2 className="h-3.5 w-3.5 shrink-0 text-primary" />
+                <span className="truncate">{projects.find((p) => p.id === activeId)?.title || 'Pilih Proyek'}</span>
+              </Button>
+            </div>
           )}
         </div>
 
@@ -398,15 +404,16 @@ function Workspace() {
                         type="button"
                         onClick={() => setPillar(p.id)}
                         aria-current={isCurrent ? 'page' : undefined}
-                        className={`flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3.5 py-2 text-xs transition-all duration-150 ${
+                        className={`flex flex-1 items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap rounded-lg px-2 sm:px-3.5 py-2 text-xs transition-all duration-150 ${
                           isCurrent
                             ? 'bg-white/[0.1] text-foreground font-semibold shadow-sm border border-white/[0.08]'
                             : 'text-muted-foreground hover:text-foreground hover:bg-white/[0.04]'
                         }`}
                         title={p.desc}
                       >
-                        <Icon className={`h-4 w-4 ${isCurrent ? 'text-primary' : 'text-muted-foreground'}`} />
-                        <span>{p.label}</span>
+                        <Icon className={`h-4 w-4 shrink-0 ${isCurrent ? 'text-primary' : 'text-muted-foreground'}`} />
+                        <span className="hidden sm:inline">{p.label}</span>
+                        <span className="inline sm:hidden">{p.shortLabel}</span>
                         <kbd className="hidden rounded bg-black/40 border border-white/[0.08] px-1.5 py-0.2 text-[10px] opacity-60 lg:inline-block">
                           {idx + 1}
                         </kbd>
@@ -586,7 +593,7 @@ function Workspace() {
                             codeSubView === 'split' ? 'bg-primary/20 text-primary font-semibold' : 'text-muted-foreground hover:text-foreground'
                           }`}
                         >
-                          <Split className="h-3.5 w-3.5" /> Split (Kode + Preview)
+                          <Split className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Split (Kode + Preview)</span><span className="sm:hidden">Split</span>
                         </button>
                         <button
                           type="button"
@@ -595,7 +602,7 @@ function Workspace() {
                             codeSubView === 'code' ? 'bg-primary/20 text-primary font-semibold' : 'text-muted-foreground hover:text-foreground'
                           }`}
                         >
-                          <Code2 className="h-3.5 w-3.5" /> Hanya Kode
+                          <Code2 className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Hanya Kode</span><span className="sm:hidden">Kode</span>
                         </button>
                         <button
                           type="button"
@@ -604,14 +611,14 @@ function Workspace() {
                             codeSubView === 'preview' ? 'bg-primary/20 text-primary font-semibold' : 'text-muted-foreground hover:text-foreground'
                           }`}
                         >
-                          <Eye className="h-3.5 w-3.5" /> Hanya Preview
+                          <Eye className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Hanya Preview</span><span className="sm:hidden">Preview</span>
                         </button>
                       </div>
                     </div>
 
                     {codeSubView === 'split' ? (
-                      <div className="grid h-[calc(100vh-230px)] gap-4 lg:grid-cols-2">
-                        <div className="h-full min-h-0 overflow-hidden">
+                      <div className="grid min-h-[520px] lg:h-[calc(100dvh-220px)] gap-4 lg:grid-cols-2">
+                        <div className="h-[420px] lg:h-full min-h-0 overflow-hidden">
                           <CodeExplorer
                             projectId={state.project.id}
                             files={state.files}
@@ -619,7 +626,7 @@ function Workspace() {
                             onChanged={refresh}
                           />
                         </div>
-                        <div className="h-full min-h-0 overflow-hidden">
+                        <div className="h-[520px] lg:h-full min-h-0 overflow-hidden">
                           <VisualEditor
                             projectId={state.project.id}
                             project={state.project}
@@ -631,7 +638,7 @@ function Workspace() {
                         </div>
                       </div>
                     ) : codeSubView === 'code' ? (
-                      <div className="h-[calc(100vh-230px)]">
+                      <div className="min-h-[500px] lg:h-[calc(100dvh-220px)]">
                         <CodeExplorer
                           projectId={state.project.id}
                           files={state.files}
@@ -640,7 +647,7 @@ function Workspace() {
                         />
                       </div>
                     ) : (
-                      <div className="h-[calc(100vh-230px)]">
+                      <div className="min-h-[500px] lg:h-[calc(100dvh-220px)]">
                         <VisualEditor
                           projectId={state.project.id}
                           project={state.project}
@@ -732,6 +739,82 @@ function Workspace() {
         projectId={state?.project?.id ?? ''}
         projectTitle={state?.project?.title ?? ''}
       />
+
+      {/* Mobile Project Switcher Modal */}
+      <Dialog isOpen={showMobileProjects} onClose={() => setShowMobileProjects(false)} maxWidth="max-w-md">
+        <DialogHeader
+          title="Daftar Proyek"
+          description="Pilih atau kelola proyek software house Anda"
+          onClose={() => setShowMobileProjects(false)}
+        />
+        <div className="max-h-[60vh] overflow-y-auto p-4 space-y-2">
+          {projects.length === 0 && listLoaded && (
+            <p className="text-center text-xs text-muted-foreground py-6">Belum ada proyek.</p>
+          )}
+          {projects.map((p) => (
+            <div
+              key={p.id}
+              className={`flex items-center justify-between rounded-lg border p-3 text-xs transition-colors ${
+                p.id === activeId
+                  ? 'border-primary/50 bg-primary/10 text-foreground'
+                  : 'border-white/[0.08] bg-white/[0.02] text-muted-foreground hover:bg-white/[0.05] hover:text-foreground'
+              }`}
+            >
+              <button
+                type="button"
+                className="flex-1 text-left min-w-0"
+                onClick={() => {
+                  router.push(`/dashboard?project=${p.id}`);
+                  setShowMobileProjects(false);
+                }}
+              >
+                <div className="font-semibold text-foreground truncate">{p.title}</div>
+                <div className="mt-1 flex items-center gap-1.5 text-[11px]">
+                  <span className={`inline-block h-1.5 w-1.5 rounded-full ${STATUS[p.status].dot}`} />
+                  <span>{STATUS[p.status].label}</span>
+                  <span className="text-white/20">·</span>
+                  <span className="font-mono text-muted-foreground">#{p.id.slice(0, 8)}</span>
+                </div>
+              </button>
+              {confirmDeleteId === p.id ? (
+                <div className="flex items-center gap-1 shrink-0 ml-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      remove(p);
+                      setShowMobileProjects(false);
+                    }}
+                    className="rounded bg-destructive px-2 py-1 text-[11px] font-semibold text-destructive-foreground active:scale-95"
+                  >
+                    Hapus
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDeleteId(null)}
+                    className="rounded bg-muted px-2 py-1 text-[11px] text-muted-foreground active:scale-95"
+                  >
+                    Batal
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  aria-label={`Hapus ${p.title}`}
+                  onClick={() => setConfirmDeleteId(p.id)}
+                  className="rounded p-1.5 text-muted-foreground hover:text-destructive shrink-0 ml-2 active:scale-95"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          ))}
+          <Button asChild className="w-full mt-3 h-9 text-xs font-semibold bg-primary text-primary-foreground">
+            <Link href="/" onClick={() => setShowMobileProjects(false)}>
+              <Plus className="mr-1.5 h-3.5 w-3.5" /> Buat Proyek Baru
+            </Link>
+          </Button>
+        </div>
+      </Dialog>
     </div>
   );
 }

@@ -52,7 +52,7 @@ export default function EngineCommandStrip({
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/[0.08] bg-[#0E131F]/95 p-2.5 px-3.5 shadow-md backdrop-blur-md">
       {/* Left: 6-Station Pipeline Stepper */}
-      <div className="flex items-center gap-1.5 overflow-x-auto text-xs py-0.5">
+      <div className="flex items-center gap-1.5 overflow-x-auto text-xs py-0.5 max-w-full touch-pan-x">
         <span className="text-[11px] font-semibold text-muted-foreground mr-1 hidden sm:inline">
           Pipeline:
         </span>
