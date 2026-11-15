@@ -31,35 +31,39 @@ export default function LiveNotebook({
   logs,
   running,
   projectId,
+  telemetry: propTelemetry,
 }: {
   logs: AgentLog[];
   running: boolean;
   projectId?: string;
+  telemetry?: TelemetryState | null;
 }) {
   const scroller = useRef<HTMLDivElement>(null);
   const stickToBottom = useRef(true);
   const [atBottom, setAtBottom] = useState(true);
   const [copied, setCopied] = useState(false);
-  const [telemetry, setTelemetry] = useState<TelemetryState | null>(null);
+  const [internalTelemetry, setInternalTelemetry] = useState<TelemetryState | null>(null);
   const [showThoughts, setShowThoughts] = useState(false);
   const statuses = roleStatuses(logs);
 
-  // Subscribe to live telemetry stream via EventSource if projectId is present
+  const telemetry = propTelemetry ?? internalTelemetry;
+
+  // Only open fallback EventSource if telemetry prop is not provided by parent
   useEffect(() => {
-    if (!projectId) return;
+    if (!projectId || propTelemetry !== undefined) return;
     const es = new EventSource(`/api/projects/${projectId}/stream`);
 
     es.addEventListener('telemetry', (e) => {
       try {
         const data = JSON.parse(e.data);
-        setTelemetry(data);
+        setInternalTelemetry(data);
       } catch {}
     });
 
     return () => {
       es.close();
     };
-  }, [projectId]);
+  }, [projectId, propTelemetry]);
 
   useEffect(() => {
     const el = scroller.current;

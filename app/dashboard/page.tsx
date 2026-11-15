@@ -27,22 +27,25 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { officeActivity } from '@/lib/activity';
+import dynamic from 'next/dynamic';
 import { api, useProjectState } from '@/lib/use-project';
 import type { Project } from '@/types';
 import type { TelemetryState } from '@/lib/telemetry';
 import CodeExplorer from './components/CodeExplorer';
 import DocumentViewer from './components/DocumentViewer';
-import ExportPanel from './components/ExportPanel';
 import LiveNotebook from './components/LiveNotebook';
 import VirtualOffice from './components/VirtualOffice';
 import ProjectSetup from './components/ProjectSetup';
-import VisualEditor from './components/VisualEditor';
-import MarketingKitPanel from './components/MarketingKitPanel';
 import EngineCommandStrip from './components/EngineCommandStrip';
-import EngineInspectorDrawer from './components/EngineInspectorDrawer';
-import DivisionAgentModal from '../office/components/DivisionAgentModal';
-import SettingsModal from '@/components/SettingsModal';
-import WarRoomModal from '@/components/WarRoomModal';
+
+// Lazy-loaded heavy components for hardware efficiency and fast initial execution
+const VisualEditor = dynamic(() => import('./components/VisualEditor'), { ssr: false });
+const ExportPanel = dynamic(() => import('./components/ExportPanel'), { ssr: false });
+const MarketingKitPanel = dynamic(() => import('./components/MarketingKitPanel'), { ssr: false });
+const EngineInspectorDrawer = dynamic(() => import('./components/EngineInspectorDrawer'), { ssr: false });
+const DivisionAgentModal = dynamic(() => import('../office/components/DivisionAgentModal'), { ssr: false });
+const SettingsModal = dynamic(() => import('@/components/SettingsModal'), { ssr: false });
+const WarRoomModal = dynamic(() => import('@/components/WarRoomModal'), { ssr: false });
 
 const PILLARS = [
   { id: 'pipeline', label: '1. Pipeline & Produksi', icon: Factory, desc: 'Lantai produksi, setup & telemetri agen' },
@@ -83,21 +86,9 @@ function Workspace() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState(false);
   const [stepLoading, setStepLoading] = useState(false);
-  const [telemetry, setTelemetry] = useState<TelemetryState | null>(null);
 
-  const { state, error, loading, refresh } = useProjectState(activeId);
-
-  // Live Telemetry Subscription
-  useEffect(() => {
-    if (!activeId) return;
-    const es = new EventSource(`/api/projects/${activeId}/stream`);
-    es.addEventListener('telemetry', (e) => {
-      try {
-        setTelemetry(JSON.parse(e.data));
-      } catch {}
-    });
-    return () => es.close();
-  }, [activeId]);
+  // Unified SSE subscription (single stream for state + telemetry)
+  const { state, telemetry, error, loading, refresh } = useProjectState(activeId);
 
   const handleApproveGate = async (autoPilot = false) => {
     if (!activeId) return;
@@ -531,7 +522,7 @@ function Workspace() {
                       />
                     ) : (
                       <div className="grid h-full min-h-[480px] gap-5 lg:grid-cols-2">
-                        <LiveNotebook logs={state.logs} running={running} projectId={state.project.id} />
+                        <LiveNotebook logs={state.logs} running={running} projectId={state.project.id} telemetry={telemetry} />
                         <div className="space-y-3">
                           <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/[0.08] bg-[#0E131F]/90 p-3 text-xs">
                             <div className="flex items-center gap-2.5">

@@ -20,6 +20,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       let lastLogCount = 0;
       let lastFileCount = 0;
       let lastTelemetryUpdated = '';
+      let lastProjUpdated = '';
 
       const send = (event: string, data: any) => {
         if (closed) return;
@@ -35,6 +36,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       if (initial) {
         lastLogCount = initial.logs.length;
         lastFileCount = initial.files.length;
+        lastProjUpdated = initial.project.updated || '';
         send('state', initial);
 
         const initialTelem = getTelemetry(id);
@@ -49,14 +51,15 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         }
       }
 
+      // Hardware-friendly cadence: 1500ms with smart metadata checking before querying full state
       const interval = setInterval(async () => {
         if (closed) {
           clearInterval(interval);
           return;
         }
         try {
-          const current = await store.getProjectState(id);
-          if (!current) {
+          const proj = await store.getProject(id);
+          if (!proj) {
             clearInterval(interval);
             controller.close();
             return;
@@ -68,22 +71,29 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
             send('telemetry', currentTelem);
           }
 
-          if (current.logs.length !== lastLogCount || current.files.length !== lastFileCount) {
-            lastLogCount = current.logs.length;
-            lastFileCount = current.files.length;
-            send('update', {
-              logs: current.logs,
-              status: current.project.status,
-              filesCount: current.files.length,
-              documentsCount: current.documents.length,
-            });
+          // Smart hardware check: only read full files/docs/logs from disk if project updated timestamp changed
+          if (proj.updated !== lastProjUpdated) {
+            lastProjUpdated = proj.updated;
+            const current = await store.getProjectState(id);
+            if (current) {
+              if (current.logs.length !== lastLogCount || current.files.length !== lastFileCount) {
+                lastLogCount = current.logs.length;
+                lastFileCount = current.files.length;
+                send('update', {
+                  logs: current.logs,
+                  status: current.project.status,
+                  filesCount: current.files.length,
+                  documentsCount: current.documents.length,
+                });
+              }
+            }
           } else {
             // Heartbeat
             controller.enqueue(encoder.encode(': ping\n\n'));
           }
 
-          if (current.project.status === 'completed' || current.project.status === 'failed') {
-            send('done', { status: current.project.status });
+          if (proj.status === 'completed' || proj.status === 'failed') {
+            send('done', { status: proj.status });
             clearInterval(interval);
             setTimeout(() => {
               try { controller.close(); } catch {}
@@ -93,7 +103,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
           clearInterval(interval);
           try { controller.close(); } catch {}
         }
-      }, 800);
+      }, 1500);
 
       req.signal.addEventListener('abort', () => {
         closed = true;

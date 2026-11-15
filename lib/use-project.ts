@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ProjectState } from '@/types';
+import type { TelemetryState } from './telemetry';
 
 /** Fetch JSON and throw an Error carrying the server's message on failure. */
 export async function api<T = any>(url: string, init?: RequestInit): Promise<T> {
@@ -15,9 +16,10 @@ export async function api<T = any>(url: string, init?: RequestInit): Promise<T> 
   return data as T;
 }
 
-/** Project state with polling while a run is in progress (the "real-time" feed). */
+/** Project state with unified SSE stream and hardware-friendly visibility awareness. */
 export function useProjectState(id: string | null) {
   const [state, setState] = useState<ProjectState | null>(null);
+  const [telemetry, setTelemetry] = useState<TelemetryState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const idRef = useRef(id);
@@ -41,6 +43,7 @@ export function useProjectState(id: string | null) {
 
   useEffect(() => {
     setState(null);
+    setTelemetry(null);
     setError(null);
     if (id) {
       setLoading(true);
@@ -50,11 +53,22 @@ export function useProjectState(id: string | null) {
 
   const running = state?.project.status === 'running';
   useEffect(() => {
-    if (!running || !id) return;
+    if (!id) return;
+    // Only establish continuous stream when running or initial setup
+    if (!running) return;
 
     if (typeof EventSource !== 'undefined') {
       const es = new EventSource(`/api/projects/${id}/stream`);
-      es.addEventListener('update', () => refresh());
+      es.addEventListener('update', () => {
+        if (typeof document === 'undefined' || document.visibilityState === 'visible') {
+          refresh();
+        }
+      });
+      es.addEventListener('telemetry', (e) => {
+        try {
+          setTelemetry(JSON.parse(e.data));
+        } catch {}
+      });
       es.addEventListener('done', () => {
         refresh();
         es.close();
@@ -65,9 +79,14 @@ export function useProjectState(id: string | null) {
       return () => es.close();
     }
 
-    const t = setInterval(refresh, 1500);
+    // Fallback polling with tab visibility check (pauses in background)
+    const t = setInterval(() => {
+      if (typeof document === 'undefined' || document.visibilityState === 'visible') {
+        refresh();
+      }
+    }, 2000);
     return () => clearInterval(t);
   }, [running, id, refresh]);
 
-  return { state, error, loading, refresh };
+  return { state, telemetry, error, loading, refresh };
 }

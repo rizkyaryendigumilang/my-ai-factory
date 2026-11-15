@@ -21,11 +21,34 @@ export interface TelemetryState {
   lastUpdated: string;
 }
 
-// In-memory process storage for live telemetry
+// In-memory process storage for live telemetry with LRU memory cap
 const telemetryStore = new Map<string, TelemetryState>();
 const burnHistory = new Map<string, { timestamp: number; tokens: number }[]>();
+const MAX_TELEMETRY_PROJECTS = 50;
+
+function cleanupOldTelemetry(): void {
+  if (telemetryStore.size <= MAX_TELEMETRY_PROJECTS) return;
+  const now = Date.now();
+  const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+  for (const [id, state] of telemetryStore.entries()) {
+    const age = now - new Date(state.lastUpdated).getTime();
+    if (age > TWO_HOURS_MS) {
+      telemetryStore.delete(id);
+      burnHistory.delete(id);
+    }
+  }
+  // If still above cap, evict oldest key
+  if (telemetryStore.size > MAX_TELEMETRY_PROJECTS) {
+    const firstKey = telemetryStore.keys().next().value;
+    if (firstKey) {
+      telemetryStore.delete(firstKey);
+      burnHistory.delete(firstKey);
+    }
+  }
+}
 
 function ensureState(projectId: string): TelemetryState {
+  cleanupOldTelemetry();
   let state = telemetryStore.get(projectId);
   if (!state) {
     state = {

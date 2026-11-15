@@ -139,6 +139,7 @@ export default function VisualEditor({
   };
 
   const fetchRunnerStatus = useCallback(async () => {
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
     try {
       const res = await api<{ ok: boolean; runner: SandboxStatus }>(`/api/projects/${projectId}/runner`);
       if (res.runner) setRunner(res.runner);
@@ -147,9 +148,16 @@ export default function VisualEditor({
 
   useEffect(() => {
     fetchRunnerStatus();
-    const interval = setInterval(fetchRunnerStatus, 4000);
+    // Hardware-friendly adaptive polling:
+    // Only poll continuously if sandbox is currently starting (2.5s) or active (12s).
+    // If stopped/failed, do not waste CPU cycles in an interval.
+    const status = runner?.status;
+    if (status === 'stopped' || status === 'failed') return;
+
+    const intervalMs = status === 'starting' ? 2500 : 12000;
+    const interval = setInterval(fetchRunnerStatus, intervalMs);
     return () => clearInterval(interval);
-  }, [fetchRunnerStatus]);
+  }, [fetchRunnerStatus, runner?.status]);
 
   useEffect(() => {
     const onMsg = (e: MessageEvent) => {

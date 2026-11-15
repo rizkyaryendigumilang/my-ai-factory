@@ -56,9 +56,19 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     background-color: #080B11;
-    background-image: radial-gradient(circle at 50% 0%, rgba(30, 41, 65, 0.25) 0%, transparent 65%);
-    background-attachment: fixed;
     letter-spacing: -0.011em;
+  }
+
+  /* GPU-composited fixed background (zero scroll repaint penalty) */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: -10;
+    background-image: radial-gradient(circle at 50% 0%, rgba(30, 41, 65, 0.25) 0%, transparent 65%);
+    transform: translateZ(0);
+    will-change: transform;
   }
 
   button, a {
@@ -148,3 +158,43 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* ============================================================
+ * Hardware-Friendly Eco Mode — Strips GPU fill-rate bottlenecks
+ * ============================================================ */
+.eco-mode [class*="backdrop-blur-"],
+.eco-mode .glass-header,
+.eco-mode .glass-card {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.eco-mode .glass-header {
+  background: rgba(8, 11, 17, 0.98) !important;
+}
+
+.eco-mode .glass-card,
+.eco-mode .bento-card {
+  background: rgba(14, 19, 31, 0.98) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5) !important;
+}
+
+.eco-mode [class*="backdrop-blur-sm"],
+.eco-mode [class*="backdrop-blur-md"] {
+  background-color: rgba(14, 19, 31, 0.98) !important;
+}
+
+.eco-mode [class*="backdrop-blur-xl"],
+.eco-mode [class*="backdrop-blur-2xl"] {
+  background-color: rgba(10, 14, 23, 0.99) !important;
+}
+
+.eco-mode .skeleton-shimmer {
+  animation: none !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.eco-mode * {
+  text-shadow: none !important;
+}
+

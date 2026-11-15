@@ -91,11 +91,55 @@ export default function VirtualOffice({
 
     let raf = 0;
     let t = 0;
+    let lastFrameTime = 0;
+    let isIntersecting = true;
+    let isTabVisible = document.visibilityState === 'visible';
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    const frame = () => {
-      t++;
+    // Hardware eco-mode & visibility throttling
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          isIntersecting = entry.isIntersecting;
+          if (isIntersecting && isTabVisible && !raf) {
+            lastFrameTime = performance.now();
+            raf = requestAnimationFrame(frame);
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(canvas);
+
+    const onVisibilityChange = () => {
+      isTabVisible = document.visibilityState === 'visible';
+      if (isTabVisible && isIntersecting && !raf) {
+        lastFrameTime = performance.now();
+        raf = requestAnimationFrame(frame);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    const frame = (now: number) => {
+      // 1. Hardware-friendly pause: if tab is hidden or canvas scrolled offscreen, stop loop
+      if (!isTabVisible || !isIntersecting) {
+        raf = 0;
+        return;
+      }
+
       const act = activityRef.current ?? {};
+      const hasActiveWork = ROLE_ORDER.some((r) => act[r] === 'typing' || act[r] === 'discussing');
+      const isEco = typeof document !== 'undefined' && document.documentElement.classList.contains('eco-mode');
+
+      // 2. Hardware FPS Throttling:
+      // Active work: 30fps (33ms). Idle: 12fps (83ms). Eco-mode: 15fps max.
+      const targetInterval = isEco ? 66 : (hasActiveWork ? 33 : 83);
+      if (now - lastFrameTime < targetInterval) {
+        raf = requestAnimationFrame(frame);
+        return;
+      }
+      lastFrameTime = now;
+      t++;
 
       for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
@@ -182,7 +226,11 @@ export default function VirtualOffice({
       raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+      observer.disconnect();
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
   }, []);
 
   const typing = ROLE_ORDER.filter((r) => activity?.[r] === 'typing').map((r) => CAST[r].name);

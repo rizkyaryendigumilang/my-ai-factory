@@ -9,6 +9,7 @@ import {
   CircleDashed,
   Cpu,
   Layers,
+  Leaf,
   Loader2,
   ShieldCheck,
   Sparkles,
@@ -16,6 +17,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useHardwareEcoMode } from '@/lib/eco-mode';
 import type { Project } from '@/types';
 import type { TelemetryState } from '@/lib/telemetry';
 
@@ -41,6 +43,7 @@ export default function EngineCommandStrip({
   onOpenInspector,
   onOpenWarRoom,
 }: EngineCommandStripProps) {
+  const { isEcoMode, setEcoMode } = useHardwareEcoMode();
   const isRunning = project.status === 'running';
   const isCompleted = project.status === 'completed';
   const burnRate = telemetry?.burnRate ?? (isRunning ? 38 : 0);
@@ -103,6 +106,25 @@ export default function EngineCommandStrip({
             <span>Hemat ~{tokensSaved} tok</span>
           </span>
         )}
+
+        {/* Hardware-Friendly Eco Mode Toggle */}
+        <button
+          type="button"
+          onClick={() => setEcoMode(!isEcoMode)}
+          className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-all ${
+            isEcoMode
+              ? 'border border-emerald-500/40 bg-emerald-500/20 text-emerald-300'
+              : 'border border-white/[0.08] bg-white/[0.03] text-muted-foreground hover:bg-white/[0.07] hover:text-foreground'
+          }`}
+          title={
+            isEcoMode
+              ? 'Mode Ramah Hardware Aktif (Blur dinonaktifkan, canvas FPS dibatasi ke 15fps untuk menghemat baterai & CPU)'
+              : 'Aktifkan Mode Ramah Hardware (Matikan efek blur berat & hemat konsumsi baterai/GPU laptop)'
+          }
+        >
+          <Leaf className={`h-3 w-3 ${isEcoMode ? 'text-emerald-400' : 'text-muted-foreground'}`} />
+          <span className="hidden sm:inline">{isEcoMode ? 'Eco Aktif' : 'Eco Mode'}</span>
+        </button>
 
         {/* War Room Summon Button */}
         <Button

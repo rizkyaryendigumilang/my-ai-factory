@@ -11943,7 +11943,19 @@ function drawPets() {
     officePets.forEach(function(p) { p.draw(); });
 }
 
+var _loopPaused = false;
+document.addEventListener('visibilitychange', function() {
+    if (!document.hidden && _loopPaused) {
+        _loopPaused = false;
+        requestAnimationFrame(loop);
+    }
+});
+
 function loop() {
+    if (document.hidden) {
+        _loopPaused = true;
+        return;
+    }
     // Update ambient light cache once per frame
     _updateAmbientCache();
     // Clear entire canvas
