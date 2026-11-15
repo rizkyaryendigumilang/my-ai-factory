@@ -46,43 +46,423 @@ export function mockRisk(title: string) {
 
 export function mockPrd(title: string, prompt: string) {
   return {
-    brd: `# BRD — ${title}\n\n## Latar belakang\n${prompt}\n\n## Tujuan bisnis\n- Meluncurkan MVP dalam hitungan hari\n- Memvalidasi kebutuhan pengguna utama\n\n## Metrik keberhasilan\n- 100 pengguna aktif dalam 30 hari pertama`,
-    prd: `# PRD — ${title}\n\n## Ringkasan\n${prompt}\n\n## Kebutuhan fungsional\n1. Pengguna dapat mendaftar dan masuk\n2. Pengguna dapat membuat dan mengelola data inti\n3. Pengguna melihat ringkasan di dashboard\n\n## Kebutuhan non-fungsional\n- Waktu muat < 2 detik\n- Mematuhi OWASP Top 10`,
+    brd: `# Business Requirements Document (BRD) — ${title}
+
+## 1. Ringkasan Eksekutif
+Dokumen ini mendefinisikan persyaratan bisnis strategis untuk pengembangan **${title}**. Solusi ini dirancang untuk menjawab kebutuhan operasional nyata dan meningkatkan efisiensi proses kerja.
+
+## 2. Latar Belakang & Identifikasi Masalah
+${prompt || 'Proses operasional saat ini membutuhkan sistem otomasi terintegrasi untuk mempercepat alur kerja, mengurangi kesalahan manusia, dan menyajikan data secara real-time.'}
+
+## 3. Tujuan Bisnis & Sasaran Strategis
+- **Otomasi Proses:** Mengurangi waktu pengerjaan manual minimal 60%.
+- **Validasi Cepat (Time to Market):** Meluncurkan versi MVP yang stabil dan siap diuji oleh pengguna target dalam hitungan minggu.
+- **Transparansi & Akurasi Data:** Memastikan integritas data operasional tanpa inkonsistensi.
+
+## 4. Ruang Lingkup Proyek (Scope of Work)
+### In-Scope (MVP):
+- Otentikasi dan manajemen akses pengguna (Role-Based Access).
+- Pengelolaan entitas data operasional utama sesuai kebutuhan bisnis.
+- Dashboard analitik ringkas untuk memantau performa harian.
+- Validasi aturan bisnis dan proteksi data sensitif.
+
+### Out-of-Scope (Fase Lanjutan):
+- Integrasi ke sistem ERP korporat skala besar pihak ketiga (Fase 2).
+- Migrasi database legasi yang tidak terdokumentasi.
+
+## 5. Stakeholder Kunci
+- **Pemilik Usaha / Manajemen:** Memerlukan visibilitas laporan, efisiensi biaya, dan kendali operasional.
+- **Operator / Pengguna Lapangan:** Membutuhkan antarmuka yang cepat, intuitif, dan responsif.
+- **Pelanggan Akhir:** Menikmati layanan yang lebih cepat, transparan, dan terpercaya.
+
+## 6. Metrik Keberhasilan (KPIs)
+- Tingkat adopsi pengguna aktif > 80% pada 30 hari pertama pasca rilis.
+- Zero fatal data breach (kepatuhan OWASP Top 10 terpenuhi 100%).
+- Uptime sistem minimal 99.5% pada runner produksi.`,
+    prd: `# Product Requirements Document (PRD) — ${title}
+
+## 1. Visi Produk & Ringkasan Solusi
+**${title}** adalah aplikasi web modern berbasis Next.js 15 dan Tailwind CSS yang dirancang untuk memberikan pengalaman pengguna yang sederhana, bersih, dan berorientasi pada kecepatan eksekusi.
+
+## 2. Kebutuhan Fungsional (Functional Requirements)
+1. **Otentikasi & Keamanan:** Akses berbasis sesi aman dengan pemisahan wewenang.
+2. **Katalog & Data Operasional:** Formulir input data dengan validasi client dan server.
+3. **Pencatatan & Riwayat:** Penyimpanan status transaksi dan audit trail yang dapat ditelusuri.
+4. **Dashboard Eksekutif:** Visualisasi metrik utama dengan pembaruan dinamis.
+
+## 3. Kebutuhan Non-Fungsional (Non-Functional Requirements)
+- **Performa:** Waktu muat halaman pertama < 1.5 detik (First Contentful Paint).
+- **Akselerasi Hardware:** Komposisi render teroptimasi GPU, bebas jank dan scroll repaint penalty.
+- **Keamanan:** Mematuhi OWASP Top 10 (Sanitasi input, proteksi XSS/CSRF, isolasi multi-tenant).
+- **Ketersediaan:** Penyimpanan offline-first dengan sinkronisasi otomatis.`,
     userStories: [
-      { id: 'US-1', story: 'Sebagai pengguna, saya ingin mendaftar agar data saya tersimpan.', acceptanceCriteria: ['Form menolak email tidak valid', 'Akun dibuat dan pengguna diarahkan ke dashboard'] },
-      { id: 'US-2', story: 'Sebagai pengguna, saya ingin membuat item baru agar bisa mengelolanya.', acceptanceCriteria: ['Item tampil di daftar segera setelah dibuat', 'Judul wajib diisi'] },
-      { id: 'US-3', story: 'Sebagai pengguna, saya ingin melihat ringkasan agar cepat memahami status.', acceptanceCriteria: ['Dashboard menampilkan jumlah item', 'Data diperbarui tanpa reload'] },
+      {
+        id: 'US-1',
+        story: `Sebagai pengguna, saya dapat masuk ke dalam sistem ${title} dengan aman agar data operasional terlindungi.`,
+        acceptanceCriteria: [
+          'Given pengguna memiliki akun terdaftar, When memasukkan email dan password valid, Then sistem memberikan akses ke dashboard utama.',
+          'Given kredensial salah, When menekan tombol login, Then muncul pesan peringatan dan akses ditolak.',
+        ],
+      },
+      {
+        id: 'US-2',
+        story: `Sebagai staf/operator, saya dapat mencatat dan memperbarui transaksi operasional secara real-time.`,
+        acceptanceCriteria: [
+          'Given form input dibuka, When mengisi data wajib dan menekan simpan, Then data tersimpan dan status langsung terbarui.',
+          'Given kolom wajib kosong, When menekan simpan, Then form menampilkan validasi inline.',
+        ],
+      },
+      {
+        id: 'US-3',
+        story: `Sebagai manajer/pemilik, saya dapat melihat ringkasan statistik dan metrik performa di dashboard.`,
+        acceptanceCriteria: [
+          'Given dashboard dibuka, When data baru masuk, Then kartu KPI otomatis mencerminkan angka terbaru tanpa reload penuh.',
+        ],
+      },
     ],
   };
 }
 
 const mk = (title: string, mermaid: string, nodes: DiagramDoc['nodes'], edges: DiagramDoc['edges']): DiagramDoc => ({ title, mermaid, nodes, edges });
 
-export function mockDiagrams(): Record<'uml' | 'erd' | 'dfd' | 'architecture', DiagramDoc> {
+function getDomainEntities(title = '', prompt = '') {
+  const text = `${title} ${prompt}`.toLowerCase();
+  if (text.includes('klinik') || text.includes('pasien') || text.includes('dokter') || text.includes('medis') || text.includes('resep')) {
+    return {
+      domain: 'Sistem Rekam Medis & Klinik Pratama',
+      entities: [
+        { id: 'PASIEN', label: 'Pasien (Data & Identitas)' },
+        { id: 'DOKTER', label: 'Dokter (Spesialis & SIP)' },
+        { id: 'JADWAL_PRAKTEK', label: 'Jadwal Praktek Dokter' },
+        { id: 'ANTREAN_KLINIK', label: 'Antrean Pasien Harian' },
+        { id: 'REKAM_MEDIS', label: 'Rekam Medis (SOAP & ICD-10)' },
+        { id: 'RESEP_OBAT', label: 'Resep Obat & Dosis' },
+      ],
+      relations: [
+        { from: 'DOKTER', to: 'JADWAL_PRAKTEK', label: 'memiliki' },
+        { from: 'PASIEN', to: 'ANTREAN_KLINIK', label: 'mengambil' },
+        { from: 'PASIEN', to: 'REKAM_MEDIS', label: 'memiliki_riwayat' },
+        { from: 'DOKTER', to: 'REKAM_MEDIS', label: 'memeriksa_dan_mencatat' },
+        { from: 'REKAM_MEDIS', to: 'RESEP_OBAT', label: 'menghasilkan' },
+      ],
+      erdMermaid: `erDiagram
+    PASIEN ||--o{ ANTREAN_KLINIK : mendaftar
+    PASIEN ||--o{ REKAM_MEDIS : memiliki
+    DOKTER ||--o{ JADWAL_PRAKTEK : memiliki
+    DOKTER ||--o{ REKAM_MEDIS : memeriksa
+    REKAM_MEDIS ||--o{ RESEP_OBAT : menghasilkan
+
+    PASIEN {
+        string id PK
+        string no_rm UK
+        string nama
+        string nik
+        string tgl_lahir
+        string no_telp
+    }
+    DOKTER {
+        string id PK
+        string nama
+        string spesialisasi
+        string no_sip
+    }
+    ANTREAN_KLINIK {
+        string id PK
+        string pasien_id FK
+        string dokter_id FK
+        number nomor_antrean
+        string status
+        datetime waktu_daftar
+    }
+    REKAM_MEDIS {
+        string id PK
+        string pasien_id FK
+        string dokter_id FK
+        string keluhan_utama
+        string diagnosa
+        string tindakan
+        datetime tgl_kunjungan
+    }
+    RESEP_OBAT {
+        string id PK
+        string rekam_medis_id FK
+        string nama_obat
+        string aturan_pakai
+        number jumlah
+    }`,
+      umlMermaid: `classDiagram
+    class Pasien {
+        +String id
+        +String noRm
+        +String nama
+        +daftarAntrean()
+        +lihatRiwayat()
+    }
+    class Dokter {
+        +String id
+        +String nama
+        +String noSip
+        +buatRekamMedis()
+        +buatResep()
+    }
+    class AntreanKlinik {
+        +String id
+        +Int nomorAntrean
+        +String status
+        +panggilPasien()
+    }
+    class RekamMedis {
+        +String id
+        +String diagnosa
+        +String tindakan
+        +enkripsiData()
+    }
+    class ResepObat {
+        +String id
+        +String namaObat
+        +cetakResep()
+    }
+    Pasien "1" --> "*" AntreanKlinik
+    Pasien "1" --> "*" RekamMedis
+    Dokter "1" --> "*" RekamMedis
+    RekamMedis "1" --> "*" ResepObat`,
+      dfdMermaid: `flowchart TD
+    P[Pasien] -->|Registrasi & Ambil Nomor| A[1.0 Manajemen Antrean]
+    A -->|Simpan Antrean| D1[(Data Antrean)]
+    D[Dokter] -->|Panggil Pasien & Periksa| R[2.0 Layanan Rekam Medis]
+    R -->|Simpan SOAP & Diagnosa| D2[(Data Rekam Medis Terenkripsi)]
+    R -->|Kirim Resep| F[3.0 Cetak & Farmasi]
+    F -->|Detail Obat| D3[(Stok & Resep Obat)]
+    F -->|Cetak Lembar Resep| P`,
+    };
+  }
+
+  if (text.includes('kasir') || text.includes('warung') || text.includes('toko') || text.includes('pos')) {
+    return {
+      domain: 'Sistem Kasir & Point of Sale (POS)',
+      entities: [
+        { id: 'KASIR', label: 'Kasir & Pengguna' },
+        { id: 'PRODUK', label: 'Katalog Produk & Harga' },
+        { id: 'STOK_BARANG', label: 'Manajemen Stok Barang' },
+        { id: 'TRANSAKSI', label: 'Transaksi Penjualan' },
+        { id: 'ITEM_TRANSAKSI', label: 'Rincian Belanja (Detail)' },
+        { id: 'LAPORAN_HARIAN', label: 'Laporan Omzet & Laba' },
+      ],
+      relations: [
+        { from: 'KASIR', to: 'TRANSAKSI', label: 'memproses' },
+        { from: 'PRODUK', to: 'STOK_BARANG', label: 'memiliki' },
+        { from: 'PRODUK', to: 'ITEM_TRANSAKSI', label: 'dijual_sebagai' },
+        { from: 'TRANSAKSI', to: 'ITEM_TRANSAKSI', label: 'berisi' },
+        { from: 'TRANSAKSI', to: 'LAPORAN_HARIAN', label: 'direkap_ke' },
+      ],
+      erdMermaid: `erDiagram
+    USERS ||--o{ TRANSACTIONS : creates
+    TRANSACTIONS ||--|{ TRANSACTION_ITEMS : contains
+    PRODUCTS ||--o{ TRANSACTION_ITEMS : referenced_in
+
+    USERS {
+        string id PK
+        string username
+        string role
+    }
+    PRODUCTS {
+        string id PK
+        string code UK
+        string name
+        number buy_price
+        number sell_price
+        number stock
+        number min_stock
+    }
+    TRANSACTIONS {
+        string id PK
+        string user_id FK
+        string invoice_number
+        number total_amount
+        string payment_method
+        number cash_paid
+        number change_amount
+        datetime created_at
+    }
+    TRANSACTION_ITEMS {
+        string id PK
+        string transaction_id FK
+        string product_id FK
+        number quantity
+        number price_at_sale
+        number subtotal
+    }`,
+      umlMermaid: `classDiagram
+    class User {
+        +String id
+        +String username
+        +login()
+    }
+    class Product {
+        +String id
+        +String name
+        +Number sellPrice
+        +Number stock
+        +updateStock()
+    }
+    class Transaction {
+        +String id
+        +String invoiceNo
+        +Number totalAmount
+        +checkout()
+    }
+    class TransactionItem {
+        +String id
+        +Number quantity
+        +Number subtotal
+    }
+    User "1" --> "*" Transaction
+    Transaction "1" *-- "*" TransactionItem
+    Product "1" --> "*" TransactionItem`,
+      dfdMermaid: `flowchart TD
+    K[Kasir] -->|Scan/Pilih Barang| P1[1.0 Olah Transaksi]
+    P1 -->|Potong Stok| D1[(Data Stok Produk)]
+    P1 -->|Simpan Faktur| D2[(Data Penjualan)]
+    P1 -->|Cetak Struk Nota| K
+    Pemilik[Pemilik Warung] -->|Query Omzet & Profit| P2[2.0 Laporan Keuangan]
+    D2 -->|Agregasi Penjualan| P2
+    P2 -->|Laporan Harian| Pemilik`,
+    };
+  }
+
+  // Smart dynamic extraction based on words in title
+  const words = title.replace(/[^a-zA-Z0-9\s]/g, '').split(/\s+/).filter((w) => w.length > 2).slice(0, 4);
+  const w1 = words[0] ? words[0].toUpperCase() : 'USER';
+  const w2 = words[1] ? words[1].toUpperCase() : 'CORE_DATA';
+  const w3 = words[2] ? words[2].toUpperCase() : 'TRANSACTION';
+  const w4 = words[3] ? words[3].toUpperCase() : 'REPORT';
+
+  return {
+    domain: title || 'Aplikasi Web',
+    entities: [
+      { id: w1, label: `${w1} (Data Master)` },
+      { id: w2, label: `${w2} (Entitas Operasional)` },
+      { id: w3, label: `${w3} (Transaksi & Aktivitas)` },
+      { id: w4, label: `${w4} (Rekapitulasi & Laporan)` },
+    ],
+    relations: [
+      { from: w1, to: w2, label: 'mengelola' },
+      { from: w2, to: w3, label: 'menghasilkan' },
+      { from: w3, to: w4, label: 'direkap_ke' },
+    ],
+    erdMermaid: `erDiagram
+    ${w1} ||--o{ ${w2} : mengelola
+    ${w2} ||--o{ ${w3} : menghasilkan
+    ${w3} ||--o{ ${w4} : direkap
+
+    ${w1} {
+        string id PK
+        string nama
+        string status
+        datetime created_at
+    }
+    ${w2} {
+        string id PK
+        string ${w1.toLowerCase()}_id FK
+        string deskripsi
+        number nilai
+    }
+    ${w3} {
+        string id PK
+        string ${w2.toLowerCase()}_id FK
+        string status_proses
+        datetime tanggal
+    }
+    ${w4} {
+        string id PK
+        datetime periode
+        number total_akumulasi
+    }`,
+    umlMermaid: `classDiagram
+    class ${w1} {
+        +String id
+        +String nama
+        +kelolaData()
+    }
+    class ${w2} {
+        +String id
+        +String deskripsi
+        +validasi()
+    }
+    class ${w3} {
+        +String id
+        +String status
+        +prosesAktivitas()
+    }
+    class ${w4} {
+        +String id
+        +generasiLaporan()
+    }
+    ${w1} "1" --> "*" ${w2}
+    ${w2} "1" --> "*" ${w3}
+    ${w3} "1" --> "*" ${w4}`,
+    dfdMermaid: `flowchart TD
+    User([Pengguna Terotentikasi]) -->|Input & Akses Data| P1[1.0 Kelola ${w1} & ${w2}]
+    P1 -->|Simpan Entitas| D1[(Data Store ${w1})]
+    P1 -->|Kirim Alur Operasional| P2[2.0 Proses ${w3}]
+    P2 -->|Simpan Status| D2[(Log Aktivitas ${w3})]
+    P2 -->|Ringkasan Eksekutif| P3[3.0 Laporan ${w4}]
+    P3 -->|Tampilkan KPI Dashboard| User`,
+  };
+}
+
+export function mockDiagrams(title = '', prompt = ''): Record<'uml' | 'erd' | 'dfd' | 'architecture', DiagramDoc> {
+  const d = getDomainEntities(title, prompt);
+
   return {
     erd: mk(
-      'ERD',
-      'erDiagram\n  USER ||--o{ PROJECT : owns\n  PROJECT ||--o{ ITEM : contains',
-      [{ id: 'USER', label: 'USER' }, { id: 'PROJECT', label: 'PROJECT' }, { id: 'ITEM', label: 'ITEM' }],
-      [{ from: 'USER', to: 'PROJECT', label: 'owns' }, { from: 'PROJECT', to: 'ITEM', label: 'contains' }]
+      `ERD — ${d.domain}`,
+      d.erdMermaid,
+      d.entities,
+      d.relations
     ),
     uml: mk(
-      'UML Class Diagram',
-      'classDiagram\n  class User { +id +email +login() }\n  class Project { +id +title +addItem() }\n  User "1" --> "*" Project',
-      [{ id: 'User', label: 'User' }, { id: 'Project', label: 'Project' }],
-      [{ from: 'User', to: 'Project', label: '1..*' }]
+      `UML Class Diagram — ${d.domain}`,
+      d.umlMermaid,
+      d.entities,
+      d.relations.map((r) => ({ ...r, label: '1..*' }))
     ),
     dfd: mk(
-      'DFD Level 1',
-      'flowchart LR\n  U([User]) --> W[Web App]\n  W --> D[(Database)]\n  W --> A[AI Service]',
-      [{ id: 'U', label: 'User' }, { id: 'W', label: 'Web App' }, { id: 'D', label: 'Database' }, { id: 'A', label: 'AI Service' }],
-      [{ from: 'U', to: 'W', label: 'request' }, { from: 'W', to: 'D', label: 'read/write' }, { from: 'W', to: 'A', label: 'prompt' }]
+      `DFD Level 1 — ${d.domain}`,
+      d.dfdMermaid,
+      d.entities,
+      d.relations.map((r) => ({ ...r, label: r.label.replace(/_/g, ' ') }))
     ),
     architecture: mk(
-      'Architecture',
-      'flowchart TD\n  B[Browser] --> N[Next.js App Router]\n  N --> P[(PocketBase)]\n  N --> G[Gemini API]',
-      [{ id: 'B', label: 'Browser' }, { id: 'N', label: 'Next.js App Router' }, { id: 'P', label: 'PocketBase' }, { id: 'G', label: 'Gemini API' }],
-      [{ from: 'B', to: 'N' }, { from: 'N', to: 'P' }, { from: 'N', to: 'G' }]
+      `System Architecture — ${d.domain}`,
+      `flowchart TD
+    subgraph Client["Client Tier (Next.js 15 App Router)"]
+        UI_Web["Modern Responsive Web UI"]
+        UI_Mobile["Mobile Native Touch Layout"]
+    end
+    subgraph AppServer["Application Server (Node.js & Edge API)"]
+        API_Gateway["API Handlers & Security Shield"]
+        Domain_Engine["${d.domain} Logic Engine"]
+    end
+    subgraph DataStorage["Data Persistence Tier"]
+        DB_Storage[("Database (PocketBase / SQLite)")]
+        Cache_Store[("Session & Telemetry Store")]
+    end
+
+    UI_Web -->|HTTPS / REST & SSE| API_Gateway
+    UI_Mobile -->|HTTPS REST| API_Gateway
+    API_Gateway -->|Sanitized Payloads| Domain_Engine
+    Domain_Engine -->|Read / Write Transactions| DB_Storage
+    Domain_Engine -->|State & TTL Cleanup| Cache_Store`,
+      [
+        { id: 'Client', label: 'Client Tier (Next.js 15)' },
+        { id: 'AppServer', label: 'App Server (Domain Engine)' },
+        { id: 'DataStorage', label: 'Data Tier (PocketBase)' },
+      ],
+      [
+        { from: 'Client', to: 'AppServer', label: 'HTTPS REST / SSE' },
+        { from: 'AppServer', to: 'DataStorage', label: 'SQL / JSON Store' },
+      ]
     ),
   };
 }

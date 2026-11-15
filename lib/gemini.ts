@@ -9,14 +9,32 @@ import { getEffectiveGeminiKey, readRawSettings } from '@/lib/settings-store';
 /** Server-only Gemini wrapper. Never import this from a client component. */
 
 function getModels(): string[] {
+  const activeFallbackList = [
+    'gemini-3.5-flash-lite',
+    'gemini-3.8-flash',
+    'gemini-flash-latest',
+    'gemini-3.7-flash',
+    'gemini-3.6-flash',
+    'gemini-3.5-flash',
+    'gemini-2.0-flash',
+  ];
   try {
     const s = readRawSettings().ai;
-    return [s.primaryModel, ...(s.fallbackModels || [])].map((m) => m.trim()).filter(Boolean);
+    const configured = [s.primaryModel, ...(s.fallbackModels || [])].map((m) => m.trim()).filter(Boolean);
+    // Filter out known deprecated models that return 404
+    const validConfigured = configured.filter(
+      (m) => !['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.5-flash'].includes(m)
+    );
+    const result = Array.from(new Set([...validConfigured, ...activeFallbackList]));
+    return result;
   } catch {
-    return [
-      process.env.GEMINI_MODEL ?? 'gemini-1.5-flash',
-      ...(process.env.GEMINI_FALLBACK_MODELS ?? 'gemini-2.0-flash,gemini-1.5-pro,gemini-flash-latest').split(','),
-    ]
+    return Array.from(
+      new Set([
+        process.env.GEMINI_MODEL ?? 'gemini-3.5-flash-lite',
+        ...(process.env.GEMINI_FALLBACK_MODELS ?? 'gemini-3.8-flash,gemini-flash-latest').split(','),
+        ...activeFallbackList,
+      ])
+    )
       .map((m) => m.trim())
       .filter(Boolean);
   }

@@ -5,8 +5,8 @@ import type { FactorySettings } from '@/types/settings';
 export const DEFAULT_FACTORY_SETTINGS: FactorySettings = {
   ai: {
     geminiApiKey: '',
-    primaryModel: 'gemini-1.5-flash',
-    fallbackModels: ['gemini-2.0-flash', 'gemini-1.5-pro'],
+    primaryModel: 'gemini-3.5-flash-lite',
+    fallbackModels: ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-2.0-flash'],
     routerUrl: 'https://43.156.236.102:8443',
     routerApiKey: '',
     mockMode: false,

@@ -18,6 +18,7 @@ import {
 import { allowedSkills, getSkill } from '@/lib/skills';
 import * as mock from '@/lib/mock';
 import * as store from '@/lib/store';
+import { normalizeBrdPrd, normalizeDiagram } from '@/lib/doc-normalizer';
 import { getDivisionConfigs } from '@/lib/division-config';
 import { isRemoteDivision, dispatchToRemoteAgent, extractJsonFromText } from '@/lib/hermes-client';
 import { recordThought, recordTokenUsage } from '@/lib/telemetry';
@@ -141,7 +142,7 @@ const demoAdapter: AgentProvider = {
   extractTokens: () => demo(mock.mockTokens()),
   analyzeRisk: (p) => demo(mock.mockRisk(p.title)),
   writePrd: (p) => demo(mock.mockPrd(p.title, p.raw_prompt)),
-  drawDiagram: (_p, _s, [type]) => demo(mock.mockDiagrams()[type]),
+  drawDiagram: (p, _s, [type]) => demo(mock.mockDiagrams(p.title, p.raw_prompt)[type]),
   selectStackAndQa: (p) => demo({ stack: mock.mockStack(allowedSkills(p.skills)), qa: mock.mockQa() }),
   async generateCode(project, _artifacts, progress) {
     const files = await demo(mock.mockFiles(project.title, project.raw_prompt, allowedSkills(project.skills)));
@@ -179,22 +180,23 @@ Return JSON: {"colors":{"primary":"#hex","secondary":"#hex","background":"#hex",
       `Analyse risks for this product. Return JSON: {"risks":[{"title":"","severity":"low|medium|high","description":"","mitigation":""}],"bottlenecks":["..."],"costEstimate":{"currency":"USD","tiers":[{"name":"MVP (<=100 users)","monthlyUsd":0},{"name":"Growth","monthlyUsd":0},{"name":"Scale","monthlyUsd":0}],"breakdown":[{"item":"","monthlyUsd":0}],"notes":""}}`
     );
   },
-  writePrd(project, tokens) {
-    return ask<any>(
+  async writePrd(project, tokens) {
+    const raw = await ask<any>(
       'agent-1-pm',
       project,
-      `Design tokens context: ${JSON.stringify(tokens ?? {})}\nReturn JSON: {"brd":"markdown string","prd":"markdown string","userStories":[{"id":"US-1","story":"As a ..., I want ... so that ...","acceptanceCriteria":["Given/When/Then ..."]}]}. 6-12 user stories, each with 2-4 acceptance criteria. Write in the language of the idea.`,
+      `Design tokens context: ${JSON.stringify(tokens ?? {})}\nProduce BOTH a comprehensive Business Requirements Document (BRD) and a Product Requirements Document (PRD), plus detailed user stories with Gherkin acceptance criteria.\nReturn JSON: {"brd":"comprehensive markdown string with Background, Business Objectives, In/Out Scope, Stakeholders, and Success Metrics","prd":"comprehensive markdown string with Product Vision, Core Functional Requirements, Non-Functional, Security OWASP","userStories":[{"id":"US-1","story":"As a ..., I want ... so that ...","acceptanceCriteria":["Given ..., When ..., Then ..."]}]}. 6-12 user stories, each with 2-4 acceptance criteria. Write in the language of the idea.`,
       { maxOutputTokens: 32768 }
     );
+    return normalizeBrdPrd(project, raw);
   },
   async drawDiagram(project, storiesBrief, [, kind, mermaidKind]) {
     const raw = await ask<any>(
       'agent-4-analyst',
       project,
-      `User stories: ${storiesBrief}\nDraw the ${kind} for this system. "mermaid" must be valid Mermaid.js ${mermaidKind} source (no markdown fences). "nodes" lists every box/entity/class/process with unique simple ids (letters/digits/underscore); "edges" lists connections between node ids.\nReturn JSON: {"title":"","mermaid":"","nodes":[{"id":"","label":"","group":""}],"edges":[{"from":"","to":"","label":""}]}`,
+      `PROJECT IDEA: ${project.title} — ${project.raw_prompt}\nUser stories: ${storiesBrief}\nDraw the ${kind} for THIS exact system. "mermaid" must be valid Mermaid.js ${mermaidKind} source (no markdown fences). Entities and relationships MUST reflect the actual business domain of ${project.title}. "nodes" lists every box/entity/class/process with unique simple ids (letters/digits/underscore); "edges" lists connections between node ids.\nReturn JSON: {"title":"${kind} — ${project.title}","mermaid":"","nodes":[{"id":"","label":"","group":""}],"edges":[{"from":"","to":"","label":""}]}`,
       { maxOutputTokens: 16384 }
     );
-    return normDiagram(raw, kind);
+    return normalizeDiagram(raw, `${kind} — ${project.title}`, kind);
   },
   async selectStackAndQa(project, erd, prd) {
     const skills = allowedSkills(project.skills);

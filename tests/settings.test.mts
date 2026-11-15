@@ -17,7 +17,7 @@ test('DEFAULT_FACTORY_SETTINGS contains all core modules', () => {
   assert.equal(typeof DEFAULT_FACTORY_SETTINGS.orchestration, 'object');
   assert.equal(typeof DEFAULT_FACTORY_SETTINGS.appearance, 'object');
 
-  assert.equal(DEFAULT_FACTORY_SETTINGS.ai.primaryModel, 'gemini-1.5-flash');
+  assert.equal(DEFAULT_FACTORY_SETTINGS.ai.primaryModel, 'gemini-3.5-flash-lite');
   assert.equal(DEFAULT_FACTORY_SETTINGS.vps.hermesEndpoint, 'https://43.156.236.102:8444');
   assert.equal(DEFAULT_FACTORY_SETTINGS.orchestration.kikyApprovalGates, 'strict');
   assert.equal(DEFAULT_FACTORY_SETTINGS.appearance.voiceLanguage, 'id-ID');

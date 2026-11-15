@@ -132,6 +132,7 @@ function Markdown({ children }: { children: string }) {
 function PrdView({ doc, projectId, onSaved }: { doc: ProjectDocument; projectId: string; onSaved: () => void }) {
   const c = doc.content_json ?? {};
   const [editing, setEditing] = useState(false);
+  const [subTab, setSubTab] = useState<'brd' | 'prd' | 'stories' | 'all'>('brd');
   const [brd, setBrd] = useState(c.brd ?? '');
   const [prd, setPrd] = useState(c.prd ?? '');
   const [saving, setSaving] = useState(false);
@@ -179,24 +180,75 @@ function PrdView({ doc, projectId, onSaved }: { doc: ProjectDocument; projectId:
   };
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-center gap-2">
-        {editing ? (
-          <>
-            <Button size="sm" onClick={save} disabled={saving}><Save className="mr-1 h-3.5 w-3.5" />{saving ? 'Menyimpan…' : 'Simpan'}</Button>
-            <Button size="sm" variant="ghost" onClick={() => setEditing(false)}><X className="mr-1 h-3.5 w-3.5" />Batal</Button>
-          </>
-        ) : (
-          <>
-            <Button size="sm" variant="outline" onClick={() => setEditing(true)}><Pencil className="mr-1 h-3.5 w-3.5" />Edit BRD/PRD</Button>
-            <Button size="sm" variant="ghost" onClick={copyMarkdown}>
-              {copied ? <Check className="mr-1 h-3.5 w-3.5 text-primary" /> : <Copy className="mr-1 h-3.5 w-3.5" />}
-              {copied ? 'Tersalin' : 'Salin Markdown'}
-            </Button>
-          </>
-        )}
-        {error && <span role="alert" className="text-xs text-destructive">{error}</span>}
+    <div className="space-y-4">
+      {/* Sub-tab navigation bar for BRD, PRD, and Gherkin Stories */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] pb-3">
+        <div className="flex items-center gap-1 rounded-lg border border-white/[0.08] bg-[#0E131F] p-1 text-xs">
+          <button
+            type="button"
+            onClick={() => setSubTab('brd')}
+            className={`rounded-md px-3 py-1.5 font-medium transition-all ${
+              subTab === 'brd'
+                ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
+                : 'text-muted-foreground hover:bg-white/[0.04] hover:text-foreground'
+            }`}
+          >
+            📄 1. BRD (Bisnis &amp; Sasaran)
+          </button>
+          <button
+            type="button"
+            onClick={() => setSubTab('prd')}
+            className={`rounded-md px-3 py-1.5 font-medium transition-all ${
+              subTab === 'prd'
+                ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
+                : 'text-muted-foreground hover:bg-white/[0.04] hover:text-foreground'
+            }`}
+          >
+            📋 2. PRD (Spesifikasi Produk)
+          </button>
+          <button
+            type="button"
+            onClick={() => setSubTab('stories')}
+            className={`rounded-md px-3 py-1.5 font-medium transition-all ${
+              subTab === 'stories'
+                ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
+                : 'text-muted-foreground hover:bg-white/[0.04] hover:text-foreground'
+            }`}
+          >
+            🧪 3. User Stories ({(c.userStories ?? []).length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setSubTab('all')}
+            className={`rounded-md px-3 py-1.5 font-medium transition-all ${
+              subTab === 'all'
+                ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
+                : 'text-muted-foreground hover:bg-white/[0.04] hover:text-foreground'
+            }`}
+          >
+            📖 Semua
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {editing ? (
+            <>
+              <Button size="sm" onClick={save} disabled={saving}><Save className="mr-1 h-3.5 w-3.5" />{saving ? 'Menyimpan…' : 'Simpan'}</Button>
+              <Button size="sm" variant="ghost" onClick={() => setEditing(false)}><X className="mr-1 h-3.5 w-3.5" />Batal</Button>
+            </>
+          ) : (
+            <>
+              <Button size="sm" variant="outline" onClick={() => setEditing(true)}><Pencil className="mr-1 h-3.5 w-3.5" />Edit BRD/PRD</Button>
+              <Button size="sm" variant="ghost" onClick={copyMarkdown}>
+                {copied ? <Check className="mr-1 h-3.5 w-3.5 text-primary" /> : <Copy className="mr-1 h-3.5 w-3.5" />}
+                {copied ? 'Tersalin' : 'Salin Markdown'}
+              </Button>
+            </>
+          )}
+          {error && <span role="alert" className="text-xs text-destructive">{error}</span>}
+        </div>
       </div>
+
       {editing ? (
         <div className="grid gap-3 lg:grid-cols-2">
           {([['BRD (markdown)', brd, setBrd], ['PRD (markdown)', prd, setPrd]] as const).map(([label, val, set]) => (
@@ -207,94 +259,125 @@ function PrdView({ doc, projectId, onSaved }: { doc: ProjectDocument; projectId:
           ))}
         </div>
       ) : (
-        <div className="drafting-paper space-y-6 rounded-md border border-border p-5">
-          <Markdown>{c.brd ?? ''}</Markdown>
-          <Markdown>{c.prd ?? ''}</Markdown>
+        <div className="space-y-6">
+          {/* TAB 1: BRD VIEW */}
+          {(subTab === 'brd' || subTab === 'all') && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
+                <span className="text-xs font-bold text-primary uppercase tracking-wider">
+                  Business Requirements Document (BRD)
+                </span>
+                <span className="text-[11px] text-muted-foreground">Analisis Kebutuhan Bisnis &amp; Stakeholder</span>
+              </div>
+              <div className="drafting-paper rounded-md border border-border p-5">
+                <Markdown>{c.brd || '# BRD Sedang Disintesis\n\nDokumen BRD belum terisi.'}</Markdown>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: PRD VIEW */}
+          {(subTab === 'prd' || subTab === 'all') && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
+                <span className="text-xs font-bold text-primary uppercase tracking-wider">
+                  Product Requirements Document (PRD)
+                </span>
+                <span className="text-[11px] text-muted-foreground">Spesifikasi Fitur Fungsional &amp; Non-Fungsional</span>
+              </div>
+              <div className="drafting-paper rounded-md border border-border p-5">
+                <Markdown>{c.prd || '# PRD Sedang Disintesis\n\nDokumen PRD belum terisi.'}</Markdown>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: USER STORIES & GHERKIN RUNNER */}
+          {(subTab === 'stories' || subTab === 'all') && (
+            <section className="space-y-3 pt-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-2">
+                <div>
+                  <h3 className="text-base font-semibold">User Stories &amp; Acceptance Criteria</h3>
+                  <p className="text-xs text-muted-foreground">Skenario verifikasi Gherkin yang dapat diuji otomatis (Executable Acceptance Criteria).</p>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={runAllGherkinScenarios}
+                  disabled={runningGherkin || (c.userStories ?? []).length === 0}
+                  className="h-8 text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm"
+                >
+                  {runningGherkin ? (
+                    <>
+                      <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Menguji Skenario…
+                    </>
+                  ) : (
+                    <>
+                      <Play className="mr-1.5 h-3.5 w-3.5 fill-current" /> Jalankan Verifikasi Gherkin
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              <div className="space-y-3">
+                {(c.userStories ?? []).map((s: any, i: number) => {
+                  const sid = s.id || `US-${i + 1}`;
+                  const testResult = testedStories[sid];
+
+                  return (
+                    <div key={sid} className="rounded-xl border border-white/[0.08] bg-[#0E131F]/90 p-4 text-sm shadow-sm transition-all hover:border-white/[0.15]">
+                      <div className="flex flex-wrap items-center justify-between gap-2 pb-2 mb-2 border-b border-white/[0.06]">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs font-bold text-primary px-2 py-0.5 rounded bg-primary/10 border border-primary/20">
+                            {sid}
+                          </span>
+                          <span className="font-semibold text-foreground text-xs">{s.story ?? String(s)}</span>
+                        </div>
+                        {testResult && (
+                          <span className="inline-flex items-center gap-1 rounded bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[11px] font-semibold text-emerald-400">
+                            <CheckCircle2 className="h-3 w-3" /> Lolos Verifikasi ({testResult.timestamp})
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="space-y-1.5 pt-1">
+                        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Acceptance Criteria (Gherkin):</span>
+                        <ul className="space-y-1 text-xs">
+                          {(s.acceptanceCriteria ?? []).map((a: string, j: number) => {
+                            const text = String(a).trim();
+                            const isGherkin = /^(Given|When|Then|And|But)\b/i.test(text);
+                            const prefixMatch = text.match(/^(Given|When|Then|And|But)\b/i);
+                            const prefix = prefixMatch ? prefixMatch[1] : '';
+                            const rest = prefix ? text.slice(prefix.length).trim() : text;
+
+                            return (
+                              <li key={j} className="flex items-start gap-2 rounded bg-black/30 border border-white/[0.04] p-2 leading-relaxed">
+                                {isGherkin ? (
+                                  <>
+                                    <span className={`shrink-0 rounded px-1.5 py-0.2 text-[10px] font-bold uppercase font-mono ${
+                                      prefix.toLowerCase() === 'given'
+                                        ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                                        : prefix.toLowerCase() === 'when'
+                                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                        : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                    }`}>
+                                      {prefix}
+                                    </span>
+                                    <span className="text-slate-300">{rest}</span>
+                                  </>
+                                ) : (
+                                  <span className="text-slate-300">• {text}</span>
+                                )}
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
         </div>
       )}
-      <section className="space-y-3 pt-2">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-2">
-          <div>
-            <h3 className="text-base font-semibold">User Stories &amp; Acceptance Criteria</h3>
-            <p className="text-xs text-muted-foreground">Skenario verifikasi Gherkin yang dapat diuji otomatis (Executable Acceptance Criteria).</p>
-          </div>
-          <Button
-            size="sm"
-            onClick={runAllGherkinScenarios}
-            disabled={runningGherkin || (c.userStories ?? []).length === 0}
-            className="h-8 text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm"
-          >
-            {runningGherkin ? (
-              <>
-                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Menguji Skenario…
-              </>
-            ) : (
-              <>
-                <Play className="mr-1.5 h-3.5 w-3.5 fill-current" /> Jalankan Verifikasi Gherkin
-              </>
-            )}
-          </Button>
-        </div>
-
-        <div className="space-y-3">
-          {(c.userStories ?? []).map((s: any, i: number) => {
-            const sid = s.id || `US-${i + 1}`;
-            const testResult = testedStories[sid];
-
-            return (
-              <div key={sid} className="rounded-xl border border-white/[0.08] bg-[#0E131F]/90 p-4 text-sm shadow-sm transition-all hover:border-white/[0.15]">
-                <div className="flex flex-wrap items-center justify-between gap-2 pb-2 mb-2 border-b border-white/[0.06]">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-bold text-primary px-2 py-0.5 rounded bg-primary/10 border border-primary/20">
-                      {sid}
-                    </span>
-                    <span className="font-semibold text-foreground text-xs">{s.story ?? String(s)}</span>
-                  </div>
-                  {testResult && (
-                    <span className="inline-flex items-center gap-1 rounded bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[11px] font-semibold text-emerald-400">
-                      <CheckCircle2 className="h-3 w-3" /> Lolos Verifikasi ({testResult.timestamp})
-                    </span>
-                  )}
-                </div>
-
-                <div className="space-y-1.5 pt-1">
-                  <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Acceptance Criteria (Gherkin):</span>
-                  <ul className="space-y-1 text-xs">
-                    {(s.acceptanceCriteria ?? []).map((a: string, j: number) => {
-                      const text = String(a).trim();
-                      const isGherkin = /^(Given|When|Then|And|But)\b/i.test(text);
-                      const prefixMatch = text.match(/^(Given|When|Then|And|But)\b/i);
-                      const prefix = prefixMatch ? prefixMatch[1] : '';
-                      const rest = prefix ? text.slice(prefix.length).trim() : text;
-
-                      return (
-                        <li key={j} className="flex items-start gap-2 rounded bg-black/30 border border-white/[0.04] p-2 leading-relaxed">
-                          {isGherkin ? (
-                            <>
-                              <span className={`shrink-0 rounded px-1.5 py-0.2 text-[10px] font-bold uppercase font-mono ${
-                                prefix.toLowerCase() === 'given'
-                                  ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-                                  : prefix.toLowerCase() === 'when'
-                                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                                  : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                              }`}>
-                                {prefix}
-                              </span>
-                              <span className="text-slate-300">{rest}</span>
-                            </>
-                          ) : (
-                            <span className="text-slate-300">• {text}</span>
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
     </div>
   );
 }
