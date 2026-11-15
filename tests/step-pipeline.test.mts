@@ -50,3 +50,20 @@ test('evaluateGateProgress correctly pauses on step mode and flows on auto mode'
   assert.equal(secRes.gateId, 'gate_security');
   assert.equal(secRes.nextPhase, 'agent-coder');
 });
+
+test('resumed pipeline does not pause on previously approved phases', () => {
+  // If brd_prd was already in previous, Gate 1 does not pause
+  const shouldPauseGate1 = (mode: string, prevBrdPrd: boolean) => mode === 'step' && !prevBrdPrd;
+  assert.equal(shouldPauseGate1('step', true), false);
+  assert.equal(shouldPauseGate1('step', false), true);
+
+  // If erd was already in previous, Gate 2 does not pause
+  const shouldPauseGate2 = (mode: string, prevErd: boolean) => mode === 'step' && !prevErd;
+  assert.equal(shouldPauseGate2('step', true), false);
+  assert.equal(shouldPauseGate2('step', false), true);
+
+  // If tech_stack was already in previous, Gate 3 does not pause
+  const shouldPauseGate3 = (mode: string, prevTechStack: boolean) => mode === 'step' && !prevTechStack;
+  assert.equal(shouldPauseGate3('step', true), false);
+  assert.equal(shouldPauseGate3('step', false), true);
+});

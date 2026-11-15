@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import * as store from '@/lib/store';
 import { generateWithMeta, geminiAvailable } from '@/lib/gemini';
+import { extractJsonFromText } from '@/lib/json-extract';
+import { updateSandboxFileOnDisk } from '@/lib/vps-runner';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -51,9 +53,10 @@ TASK: Fix the error in the file content. Return JSON:
 
       try {
         const result = await generateWithMeta(prompt, { json: true, temperature: 0.2 });
-        const parsed = JSON.parse(result.text.replace(/```(?:json)?/g, '').trim());
+        const parsed = extractJsonFromText<{ explanation?: string; fixedContent?: string }>(result.text);
         if (parsed.fixedContent && parsed.fixedContent.length > 20) {
           await store.saveFile(id, targetFile.file_path, parsed.fixedContent);
+          updateSandboxFileOnDisk(id, targetFile.file_path, parsed.fixedContent);
           explanation = parsed.explanation || 'Berhasil memperbaiki error dan memperbarui berkas kode.';
           patchApplied = true;
           await store.addLog(id, {

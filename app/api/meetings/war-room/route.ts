@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import * as store from '@/lib/store';
 import { generateWithMeta, geminiAvailable } from '@/lib/gemini';
+import { extractJsonFromText } from '@/lib/json-extract';
 import { canAccessProject, getSessionUserId } from '@/lib/session';
 
 export const runtime = 'nodejs';
@@ -108,7 +109,7 @@ Return JSON:
 
       try {
         const res = await generateWithMeta(prompt, { json: true, temperature: 0.3 });
-        const parsed = JSON.parse(res.text.replace(/```(?:json)?/g, '').trim());
+        const parsed = extractJsonFromText<{ opinions?: Record<string, string> }>(res.text);
         if (parsed.opinions) opinions = parsed.opinions;
       } catch {}
     }

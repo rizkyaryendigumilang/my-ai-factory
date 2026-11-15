@@ -84,5 +84,5 @@ export function diagramToDrawio(diagram: DiagramDoc, name = 'Diagram'): string {
 
 /** Type guard for the diagram payload stored in project_documents.content_json. */
 export function isDiagramDoc(v: any): v is DiagramDoc {
-  return !!v && typeof v === 'object' && typeof v.mermaid === 'string' && Array.isArray(v.nodes);
+  return !!v && typeof v === 'object' && typeof v.mermaid === 'string';
 }

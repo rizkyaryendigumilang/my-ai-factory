@@ -172,6 +172,31 @@ export async function syncProjectFilesToDisk(
   return count;
 }
 
+/**
+ * Updates a specific file in the sandbox directory on disk so that live
+ * next dev runners immediately hot-reload the updated code.
+ */
+export function updateSandboxFileOnDisk(projectId: string, filePath: string, content: string): boolean {
+  try {
+    const cleanPath = sanitizeFilePath(filePath);
+    if (!cleanPath) return false;
+    const sandboxDir = getProjectSandboxDir(projectId);
+    const resolvedTarget = path.resolve(sandboxDir);
+    const fullPath = path.resolve(resolvedTarget, cleanPath);
+    if (!fullPath.startsWith(resolvedTarget + path.sep) && fullPath !== resolvedTarget) {
+      return false;
+    }
+    const parent = path.dirname(fullPath);
+    if (!fs.existsSync(parent)) {
+      fs.mkdirSync(parent, { recursive: true });
+    }
+    fs.writeFileSync(fullPath, content, 'utf-8');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function getSandboxRunnerStatus(projectId: string): SandboxStatus {
   const r = runners.get(projectId);
   const port = r?.port ?? allocateSandboxPort(projectId);

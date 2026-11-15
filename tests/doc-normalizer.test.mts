@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { normalizeBrdPrd, normalizeDiagram, cleanMermaidSource } from '../lib/doc-normalizer.ts';
+import { isDiagramDoc } from '../lib/drawio.ts';
 import { mockDiagrams, mockPrd } from '../lib/mock.ts';
 
 test('normalizeBrdPrd synthesizes comprehensive BRD and PRD if AI returns sparse data', () => {
@@ -63,4 +64,10 @@ test('mockDiagrams dynamically extracts domain entities for POS kasir projects',
 
   assert.ok(diagrams.erd.mermaid.includes('PRODUCTS') || diagrams.erd.mermaid.includes('TRANSACTIONS'));
   assert.ok(diagrams.erd.nodes.some((n) => n.id === 'PRODUCTS' || n.id === 'TRANSACTIONS' || n.id === 'PRODUK'));
+});
+
+test('isDiagramDoc identifies diagram documents even when nodes array was omitted', () => {
+  assert.equal(isDiagramDoc({ title: 'ERD', mermaid: 'erDiagram\n USER ||--o{ ORDER : places' }), true);
+  assert.equal(isDiagramDoc({ title: 'UML', mermaid: 'classDiagram' }), true);
+  assert.equal(isDiagramDoc({ title: 'PRD', prd: 'text' }), false);
 });

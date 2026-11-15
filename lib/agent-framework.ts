@@ -19,6 +19,7 @@ import { allowedSkills, getSkill } from '@/lib/skills';
 import * as mock from '@/lib/mock';
 import * as store from '@/lib/store';
 import { normalizeBrdPrd, normalizeDiagram } from '@/lib/doc-normalizer';
+import { retrieveDomainMemory, formatMemoryContext } from '@/lib/domain-memory';
 import { getDivisionConfigs } from '@/lib/division-config';
 import { isRemoteDivision, dispatchToRemoteAgent, extractJsonFromText } from '@/lib/hermes-client';
 import { recordThought, recordTokenUsage } from '@/lib/telemetry';
@@ -77,13 +78,14 @@ interface AgentProvider {
     refs: DesignReference[]
   ): Promise<DesignToken & { extractedTokens: string[] }>;
   analyzeRisk(project: Project): Promise<any>;
-  writePrd(project: Project, tokens: any): Promise<any>;
+  writePrd(project: Project, tokens: any, memoryContext?: string): Promise<any>;
   drawDiagram(project: Project, storiesBrief: string, spec: [keyof Diagrams, string, string]): Promise<DiagramDoc>;
-  selectStackAndQa(project: Project, erd: any, prd: any): Promise<{ stack: any; qa: any }>;
+  selectStackAndQa(project: Project, erd: any, prd: any, memoryContext?: string): Promise<{ stack: any; qa: any }>;
   generateCode(
     project: Project,
     artifacts: { tokens?: any; prd?: any; erd?: any; stack?: any },
-    progress: (msg: string) => Promise<unknown> | unknown
+    progress: (msg: string) => Promise<unknown> | unknown,
+    memoryContext?: string
   ): Promise<number>;
 }
 
@@ -188,11 +190,12 @@ Return JSON: {"colors":{"primary":"#hex","secondary":"#hex","background":"#hex",
       `Analyse risks for this product. Return JSON: {"risks":[{"title":"","severity":"low|medium|high","description":"","mitigation":""}],"bottlenecks":["..."],"costEstimate":{"currency":"USD","tiers":[{"name":"MVP (<=100 users)","monthlyUsd":0},{"name":"Growth","monthlyUsd":0},{"name":"Scale","monthlyUsd":0}],"breakdown":[{"item":"","monthlyUsd":0}],"notes":""}}`
     );
   },
-  async writePrd(project, tokens) {
+  async writePrd(project, tokens, memoryContext = '') {
+    const memSection = memoryContext ? `\n${memoryContext}\n` : '';
     const raw = await ask<any>(
       'agent-1-pm',
       project,
-      `Design tokens context: ${JSON.stringify(tokens ?? {})}\nProduce BOTH a comprehensive Business Requirements Document (BRD) and a Product Requirements Document (PRD), plus detailed user stories with Gherkin acceptance criteria.\nReturn JSON: {"brd":"comprehensive markdown string with Background, Business Objectives, In/Out Scope, Stakeholders, and Success Metrics","prd":"comprehensive markdown string with Product Vision, Core Functional Requirements, Non-Functional, Security OWASP","userStories":[{"id":"US-1","story":"As a ..., I want ... so that ...","acceptanceCriteria":["Given ..., When ..., Then ..."]}]}. 6-12 user stories, each with 2-4 acceptance criteria. Write in the language of the idea.`,
+      `Design tokens context: ${JSON.stringify(tokens ?? {})}${memSection}\nProduce BOTH a comprehensive Business Requirements Document (BRD) and a Product Requirements Document (PRD), plus detailed user stories with Gherkin acceptance criteria.\nReturn JSON: {"brd":"comprehensive markdown string with Background, Business Objectives, In/Out Scope, Stakeholders, and Success Metrics","prd":"comprehensive markdown string with Product Vision, Core Functional Requirements, Non-Functional, Security OWASP","userStories":[{"id":"US-1","story":"As a ..., I want ... so that ...","acceptanceCriteria":["Given ..., When ..., Then ..."]}]}. 6-12 user stories, each with 2-4 acceptance criteria. Write in the language of the idea.`,
       { maxOutputTokens: 32768 }
     );
     return normalizeBrdPrd(project, raw);
@@ -206,14 +209,15 @@ Return JSON: {"colors":{"primary":"#hex","secondary":"#hex","background":"#hex",
     );
     return normalizeDiagram(raw, `${kind} — ${project.title}`, kind);
   },
-  async selectStackAndQa(project, erd, prd) {
+  async selectStackAndQa(project, erd, prd, memoryContext = '') {
     const skills = allowedSkills(project.skills);
     const directives = skillDirectives(project);
+    const memSection = memoryContext ? `\n${memoryContext}\n` : '';
     const [stack, qa] = await Promise.all([
       ask<any>(
         'tech-stack-security',
         project,
-        `Constraints: Next.js App Router + Tailwind + PocketBase + Gemini unless the idea clearly needs otherwise.\nInstalled skills to honour:\n${directives.map((d) => '- ' + d).join('\n') || '- none'}\nEntities: ${(erd?.nodes ?? []).map((n: any) => n.label).join(', ')}\nReturn JSON: {"stack":[{"layer":"","choice":"","reason":""}],"securityRules":[{"owasp":"A01 Broken Access Control","rule":"concrete rule for THIS app"}],"skillsApplied":${JSON.stringify(skills)}}`
+        `Constraints: Next.js App Router + Tailwind + PocketBase + Gemini unless the idea clearly needs otherwise.${memSection}\nInstalled skills to honour:\n${directives.map((d) => '- ' + d).join('\n') || '- none'}\nEntities: ${(erd?.nodes ?? []).map((n: any) => n.label).join(', ')}\nReturn JSON: {"stack":[{"layer":"","choice":"","reason":""}],"securityRules":[{"owasp":"A01 Broken Access Control","rule":"concrete rule for THIS app"}],"skillsApplied":${JSON.stringify(skills)}}`
       ),
       ask<any>(
         'tech-stack-security',
@@ -223,7 +227,7 @@ Return JSON: {"colors":{"primary":"#hex","secondary":"#hex","background":"#hex",
     ]);
     return { stack, qa };
   },
-  async generateCode(project, artifacts, progress) {
+  async generateCode(project, artifacts, progress, memoryContext = '') {
     const divisions = getDivisionConfigs();
     const coderDiv = divisions['agent-coder'];
     const input: EccInput = {
@@ -235,6 +239,7 @@ Return JSON: {"colors":{"primary":"#hex","secondary":"#hex","background":"#hex",
       erd: artifacts.erd,
       techStack: artifacts.stack,
       skillDirectives: skillDirectives(project),
+      domainMemory: memoryContext,
     };
     const ctx = compressContext(input);
     const manifest = await buildManifest(ctx, 28, coderDiv);
@@ -372,6 +377,18 @@ async function runPipeline(projectId: string, resume: boolean, provider: AgentPr
 
   const artifacts: { tokens?: any; prd?: any; erd?: any; stack?: any } = {};
 
+  // Retrieve cross-project domain memory (RAG)
+  const memorySnippets = await retrieveDomainMemory(
+    `${project.title} ${project.raw_prompt}`,
+    project.id,
+    3,
+    project.user_id
+  ).catch(() => []);
+  const memoryContext = formatMemoryContext(memorySnippets);
+  if (memorySnippets.length > 0) {
+    await log('system', 'running', `Domain Memory RAG: Mengutip ${memorySnippets.length} pola arsitektur terverifikasi dari proyek sebelumnya.`);
+  }
+
   const isQuotaOrServiceError = (err: unknown): boolean => {
     const msg = String((err as any)?.message ?? err);
     const status = (err as any)?.status;
@@ -458,7 +475,7 @@ async function runPipeline(projectId: string, resume: boolean, provider: AgentPr
     });
 
     artifacts.prd = await step('agent-1-pm', 'Menyusun BRD & PRD…', false, ['brd_prd'], async () => {
-      const prd = await provider.writePrd(project, artifacts.tokens);
+      const prd = await provider.writePrd(project, artifacts.tokens, memoryContext);
       await store.saveDocument(projectId, 'brd_prd', prd);
       return { value: prd, summary: `BRD & PRD selesai, ${prd.userStories?.length ?? 0} user story.` };
     }, async () => {
@@ -467,8 +484,8 @@ async function runPipeline(projectId: string, resume: boolean, provider: AgentPr
       return { value: prd, summary: `BRD & PRD selesai, ${prd.userStories?.length ?? 0} user story.` };
     });
 
-    // Gate 1: After PM (BRD & PRD)
-    {
+    // Gate 1: After PM (BRD & PRD) — only pause if BRD/PRD was freshly generated in this run
+    if (!prev('brd_prd')) {
       const fresh = await store.getProject(projectId);
       if (fresh?.execution_mode === 'step') {
         await store.updateProject(projectId, {
@@ -514,8 +531,8 @@ async function runPipeline(projectId: string, resume: boolean, provider: AgentPr
       return { value: done.erd, summary };
     });
 
-    // Gate 2: After System Analyst (Diagrams & ERD)
-    {
+    // Gate 2: After System Analyst (Diagrams & ERD) — only pause if ERD was freshly generated in this run
+    if (!prev('erd')) {
       const fresh = await store.getProject(projectId);
       if (fresh?.execution_mode === 'step') {
         await store.updateProject(projectId, {
@@ -534,7 +551,7 @@ async function runPipeline(projectId: string, resume: boolean, provider: AgentPr
       false,
       ['tech_stack', 'qa_plan'],
       async () => {
-        const { stack, qa } = await provider.selectStackAndQa(project, artifacts.erd, artifacts.prd);
+        const { stack, qa } = await provider.selectStackAndQa(project, artifacts.erd, artifacts.prd, memoryContext);
         await store.saveDocument(projectId, 'tech_stack', stack);
         await store.saveDocument(projectId, 'qa_plan', qa);
         return { value: stack, summary: `${stack.stack?.length ?? 0} komponen stack, ${stack.securityRules?.length ?? 0} aturan keamanan, ${qa.testCases?.length ?? 0} test case.` };
@@ -547,8 +564,8 @@ async function runPipeline(projectId: string, resume: boolean, provider: AgentPr
       }
     );
 
-    // Gate 3: After Security & QA Plan
-    {
+    // Gate 3: After Security & QA Plan — only pause if Tech Stack was freshly generated in this run
+    if (!prev('tech_stack')) {
       const fresh = await store.getProject(projectId);
       if (fresh?.execution_mode === 'step') {
         await store.updateProject(projectId, {
@@ -567,7 +584,7 @@ async function runPipeline(projectId: string, resume: boolean, provider: AgentPr
       false,
       [],
       async () => {
-        const files = await provider.generateCode(project, artifacts, (msg) => log('agent-coder', 'running', msg));
+        const files = await provider.generateCode(project, artifacts, (msg) => log('agent-coder', 'running', msg), memoryContext);
         return { value: files, summary: `${files} file ditulis lengkap ke direktori proyek.` };
       },
       async () => {
@@ -747,6 +764,10 @@ TASK: Refactor and return the complete, production-ready TypeScript/Next.js code
   }
 
   await store.saveFile(projectId, filePath, updatedCode);
+  try {
+    const { updateSandboxFileOnDisk } = await import('@/lib/vps-runner');
+    updateSandboxFileOnDisk(projectId, filePath, updatedCode);
+  } catch {}
   await store.createVersion(projectId, `Koreksi AI: ${filePath}`);
   await store.addLog(projectId, {
     agent: 'agent-coder',

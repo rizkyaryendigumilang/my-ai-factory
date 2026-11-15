@@ -5,6 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import {
   syncProjectFilesToDisk,
+  updateSandboxFileOnDisk,
   getSandboxRunnerStatus,
   allocateSandboxPort,
   getSandboxRunnerUrl,
@@ -48,4 +49,17 @@ test('allocateSandboxPort allocates within dynamic range and generates appropria
 
   const url3008 = getSandboxRunnerUrl(3008);
   assert.ok(url3008.includes('3008'));
+});
+
+test('updateSandboxFileOnDisk safely writes updated code and rejects path traversal', () => {
+  const projId = 'test-sandbox-update-' + Date.now();
+  const ok = updateSandboxFileOnDisk(projId, 'app/page.tsx', 'export const updated = true;');
+  assert.equal(ok, true);
+
+  // Path traversal must be blocked
+  const bad1 = updateSandboxFileOnDisk(projId, '../../etc/passwd', 'malicious');
+  assert.equal(bad1, false);
+
+  const bad2 = updateSandboxFileOnDisk(projId, '/root/.bashrc', 'malicious');
+  assert.equal(bad2, false);
 });

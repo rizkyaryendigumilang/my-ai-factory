@@ -7,6 +7,7 @@ export interface EccInput {
   erd?: any;
   techStack?: any;
   skillDirectives: string[];
+  domainMemory?: string;
 }
 
 export interface ManifestEntry {
@@ -35,6 +36,7 @@ export function compressContext(input: EccInput, budget = 7000): string {
     stories.length && `USER STORIES:\n${stories.join('\n')}`,
     entities.length && `DATA ENTITIES: ${entities.join(', ')}`,
     stack.length && `STACK: ${stack.join(' | ')}`,
+    input.domainMemory && input.domainMemory.trim() && `REUSED DOMAIN ARCHITECTURE PATTERNS:\n${clip(input.domainMemory, 1200)}`,
     input.skillDirectives.length && `INSTALLED SKILLS:\n${input.skillDirectives.map((d) => `- ${d}`).join('\n')}`,
   ].filter(Boolean) as string[];
 
